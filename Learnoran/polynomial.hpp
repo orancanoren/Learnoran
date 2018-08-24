@@ -75,6 +75,15 @@ public:
 		return find_result->second.coefficient;
 	}
 
+	double operator()(const std::initializer_list<std::pair<std::string, double>> list) {
+		std::unordered_map<std::string, double> params;
+		for (const std::pair<std::string, double> param : list) {
+			params.insert(param);
+		}
+
+		return this->operator()(params);
+	}
+
 	double operator()(const std::unordered_map<std::string, double> & evaluation_parameters) const {
 		// Args:
 		// - evaluation_parameters: a std::vector of pairs for which each pair is of the form <value, variable symbol>
@@ -99,8 +108,8 @@ public:
 
 	// Accessor
 
-	double partial_derivative(const std::string & derivative_variable, const double & eval) const {
-		double result = 0.0;
+	Polynomial partial_derivative(const std::string & derivative_variable) const {
+		Polynomial derived;
 
 		for (auto term : terms) {
 			if (term.second.coefficient == 0 || term.first != derivative_variable) {
@@ -108,11 +117,11 @@ public:
 			}
 
 			if (term.second.exponent > 0) {
-				result += term.second.coefficient * term.second.exponent * std::pow(eval, term.second.exponent - 1);
+				derived.add_term(term.second.coefficient * term.second.exponent, derivative_variable, term.second.exponent - 1);
 			}
 		}
 
-		return result;
+		return derived;
 	}
 
 	const std::unordered_map<std::string, PolynomialTerm> & get_terms() const {

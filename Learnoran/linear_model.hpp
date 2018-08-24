@@ -61,14 +61,16 @@ private:
 
 		for (std::pair<std::string, PolynomialTerm> term : model.get_terms()) {
 			const std::string current_parameter = term.first;
+			Polynomial derived = model.partial_derivative(current_parameter);
 
 			double derivative_mse_sum = 0;
+
 			for (unsigned row = 0; row < shape.rows; row++) {
 				const double real_value = dataframe.get_row_label(row);
 				std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
 
 				double derivative_mse = 2 * (real_value - model(row_features));
-				derivative_mse *= model.partial_derivative(current_parameter, dataframe.get_row_feature(row)[current_parameter]);
+				derivative_mse *= derived({ { current_parameter, dataframe.get_row_feature(row)[current_parameter]} });
 
 				derivative_mse_sum += (1.0 / shape.rows) * derivative_mse;
 			}
