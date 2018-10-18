@@ -1,15 +1,15 @@
 #include "stdafx.h"
 #include "CppUnitTest.h"
-#include "../Learnoran/polynomial.hpp"
+#include "Learnoran/polynomial.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace PolynomialTest
-{		
+{
 	TEST_CLASS(PolynomialTest)
 	{
 	public:
-		
+
 		TEST_METHOD(EvaluationOperatorSingleVariable)
 		{
 			// TODO: Your test code here
