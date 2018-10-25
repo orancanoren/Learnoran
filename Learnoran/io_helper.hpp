@@ -9,7 +9,7 @@
 #include <utility>
 #include <sstream>
 
-#include "sgd_exception.hpp"
+#include "lo_exception.hpp"
 
 class IOhelper {
 public:

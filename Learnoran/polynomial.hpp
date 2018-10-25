@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <cmath>
 
-#include "sgd_exception.hpp"
+#include "lo_exception.hpp"
 
 
 struct PolynomialTerm {

@@ -1,26 +1,20 @@
-#ifndef _SGD_EXCEPTION_HPP
-#define _SGD_EXCEPTION_HPP
+#ifndef _LEARNORAN_EXCEPTION_HPP
+#define _LEARNORAN_EXCEPTION_HPP
 
 #include <exception>
 
-// MARK: SGDException
+// MARK: Learnoran Exception
 
-class SGDException : public std::exception {
+class LearnoranException : public std::runtime_error {
 public:
-	SGDException(const char * err = "Unknown exception") { }
-
-	const char * what() const {
-		return err;
-	}
-private:
-	const char * err;
+	LearnoranException(char const * err = "Unknown exception") : std::runtime_error(err) { }
 };
 
 // MARK: Dataframe Exceptions
 
-class DataframeException : public SGDException {
+class DataframeException : public LearnoranException {
 public:
-	DataframeException(const char * err = "Unknown Dataframe Exception") : SGDException(err) { }
+	DataframeException(char const * err = "Unknown Dataframe Exception") : LearnoranException(err) { }
 };
 
 class EmptyDataframeException : public DataframeException {
@@ -30,9 +24,9 @@ public:
 
 // MARK: IO Exceptions
 
-class IOexception : public SGDException {
+class IOexception : public LearnoranException {
 public:
-	IOexception(const char * err = "Unknown IO Exception") : SGDException(err) { }
+	IOexception(char const * err = "Unknown IO Exception") : LearnoranException(err) { }
 };
 
 class CannotOpenFileException : public IOexception {
@@ -42,9 +36,9 @@ public:
 
 // MARK: Polynomial Exceptions
 
-class PolynomialException : public SGDException {
+class PolynomialException : public LearnoranException {
 public:
-	PolynomialException(const char * err = "Unknown Polynomial exception") : SGDException(err) { }
+	PolynomialException(char const * err = "Unknown Polynomial exception") : LearnoranException(err) { }
 };
 
 class MissingParametersException : public PolynomialException {

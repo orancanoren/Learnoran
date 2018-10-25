@@ -15,24 +15,24 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\dataframe.hpp">
+    <ClInclude Include="linear_model.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\io_helper.hpp">
+    <ClInclude Include="polynomial.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\linear_model.hpp">
+    <ClInclude Include="dataframe.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\polynomial.hpp">
+    <ClInclude Include="io_helper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\learnoran_exception.hpp">
+    <ClInclude Include="lo_exception.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\main.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

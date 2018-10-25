@@ -18,6 +18,16 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dataframe.hpp" />
+    <ClInclude Include="io_helper.hpp" />
+    <ClInclude Include="linear_model.hpp" />
+    <ClInclude Include="polynomial.hpp" />
+    <ClInclude Include="lo_exception.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{DF9D4D20-11E6-4623-85C1-EB9D065622AA}</ProjectGuid>
@@ -85,6 +95,9 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -115,16 +128,6 @@
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\dataframe.hpp" />
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\io_helper.hpp" />
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\linear_model.hpp" />
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\polynomial.hpp" />
-    <ClInclude Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\learnoran_exception.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Desktop\Learnoran\Learnoran\main.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

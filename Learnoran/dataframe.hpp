@@ -6,7 +6,7 @@
 #include <string>
 #include <iostream> // std::std::cout, for debugging purposes only
 
-#include "sgd_exception.hpp"
+#include "lo_exception.hpp"
 
 struct DataframeShape {
 	DataframeShape(unsigned rows, unsigned short columns) : rows(rows), columns(columns) { }
