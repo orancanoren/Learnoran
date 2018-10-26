@@ -12,7 +12,7 @@ struct DataframeShape {
 	DataframeShape(unsigned rows, unsigned short columns) : rows(rows), columns(columns) { }
 
 	unsigned rows;
-	unsigned short columns;
+	size_t columns;
 };
 
 class Dataframe {

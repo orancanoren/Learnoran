@@ -50,6 +50,11 @@ public:
 		terms.insert({ variable_symbol, PolynomialTerm(coefficient, exponent) });
 	}
 
+	void set_constant_term(const double & constant_term, const std::string & constant_term_symbol) {
+		add_term(constant_term, constant_term_symbol, 0);
+		this->constant_term_symbol = constant_term_symbol;
+	}
+
 	// Operators
 
 	bool operator==(const Polynomial & rhs) const {
@@ -98,9 +103,17 @@ public:
 
 		double result = 0.0;
 		for (std::unordered_map<std::string, PolynomialTerm>::const_iterator it = terms.cbegin(); it != terms.cend(); it++) {
+			if (it->first == constant_term_symbol) {
+				continue;
+			}
 			result += std::pow(evaluation_parameters.find(it->first)->second, it->second.exponent) * it->second.coefficient;
 		}
-
+		
+		// add the constant term
+		if (this->constant_term_symbol != "") {
+			const double constant_term = terms.find(constant_term_symbol)->second.coefficient;
+			result += constant_term;
+		}
 		return result;
 	}
 
@@ -127,9 +140,15 @@ public:
 	const std::unordered_map<std::string, PolynomialTerm> & get_terms() const {
 		return terms;
 	}
+
+	std::string constant_term_symbol;
 private:
 	bool check_evaluation_parameters(const std::unordered_map<std::string, double> & evaluation_parameters) const {
 		for (std::unordered_map<std::string, PolynomialTerm>::const_iterator it = terms.cbegin(); it != terms.cend(); it++) {
+			if (it->second.exponent == 0) {
+				// no need to check if a value for constant term is provided or not
+				continue;
+			}
 			std::unordered_map<std::string, double>::const_iterator find_result = evaluation_parameters.find(it->first);
 
 			if (find_result == evaluation_parameters.cend()) {

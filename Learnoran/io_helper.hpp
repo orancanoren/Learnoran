@@ -27,6 +27,8 @@ public:
 	std::pair<std::vector<std::vector<double>>, std::vector<double>> read_csv(const unsigned row_count = UNKNOWN, const char delimiter = ',') {
 		// Assumes the dataset is composed of numerical data only and the labels are residing at the last column!
 		// Args:
+		// - row_count: number of rows in the dataset - speeds up the operation. If row_count is larger than the 
+		// actual number of rows, the dataset size is shrinked to fit to actual size
 		// - delimiter: the delimiter to seperate fields in the supplied CSV file
 		// Returns:
 		//   A std::pair consisting of features and labels respectively in the format of 2D and 1D arrays.
@@ -62,7 +64,13 @@ public:
 				static_row_append(features, labels, line_stream, row_counter, delimiter);
 				row_counter++;
 			}
+			// row count might be larger than the size of actual data. To prevent future issues, dataset must be shrinked to actual size
+			features.resize(row_counter);
+			labels.resize(row_counter);
 		}
+		// shrink the vector capacity to its size, to reduce the memory usage.
+		//This is a good way of reducing the memory usage if there will be no more insertions to the dataset
+		features.shrink_to_fit();
 
 		return std::make_pair(features, labels);
 	}
