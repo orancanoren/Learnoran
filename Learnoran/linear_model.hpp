@@ -1,6 +1,8 @@
 #ifndef _LINEAR_MODEL_HPP
 #define _LINEAR_MODEL_HPP
 
+//#define _SEQUENTIAL
+
 #include <random>
 #include <string>
 #include <vector>
@@ -109,7 +111,9 @@ private:
 			const unsigned current_parameter_exponent = term.second.exponent;
 
 			double derivative_cost_function = 0.0;
+#ifndef _SEQUENTIAL
 #pragma omp parallel for
+#endif
 			for (int row = 0; row < shape.rows; row++) {
 				const double real_value = dataframe.get_row_label(row);
 				std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
@@ -120,7 +124,9 @@ private:
 				const double normalizer = 1.0 / shape.rows;
 
 				double current_row_error = normalizer * model_error * inner_derivative;
+#ifndef _SEQUENTIAL
 #pragma omp atomic
+#endif
 				derivative_cost_function += current_row_error;
 			}
 
