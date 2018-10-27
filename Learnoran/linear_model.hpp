@@ -20,10 +20,10 @@ public:
 		for (unsigned short epoch = 0; epoch < epochs; epoch++) {
 			mse_batch_gd(dataframe, learning_rate);
 			if (epoch % 10 == 0) {
-				std::cout << "loss after epoch " << epoch << ": " << compute_loss(dataframe) << std::endl;
+				std::cout << "loss after epoch " << epoch << ": " << compute_mean_square_error(dataframe) << std::endl;
 			}
 		}
-		std::cout << "final loss: " << compute_loss(dataframe) << std::endl;
+		std::cout << "final loss: " << compute_mean_square_error(dataframe) << std::endl;
 	}
 
 	double predict(const std::unordered_map<std::string, double> features) const {
@@ -40,6 +40,21 @@ public:
 		return predict(feature_map);
 	}
 
+	double compute_mean_square_error(const Dataframe & dataframe) {
+		DataframeShape shape = dataframe.shape();
+
+		double loss = 0;
+		for (unsigned row = 0; row < shape.rows; row++) {
+			const double real_value = dataframe.get_row_label(row);
+			std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
+
+			const double model_error = model(row_features) - real_value;
+			loss += model_error * model_error;
+		}
+		loss *= 1.0 / (shape.rows);
+
+		return loss;
+	}
 private:
 	Polynomial model;
 
@@ -113,23 +128,6 @@ private:
 
 			model[current_parameter] = parameter_new_value;
 		}
-	}
-
-	double compute_loss(const Dataframe & dataframe) {
-		DataframeShape shape = dataframe.shape();
-
-		double loss = 0;
-		for (unsigned row = 0; row < shape.rows; row++) {
-			const double real_value = dataframe.get_row_label(row);
-			std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
-
-			const double model_prediction = model(row_features);
-			const double model_error = model_prediction - real_value;
-			loss += model_error * model_error;
-		}
-		loss *= 1.0 / (2 * shape.rows);
-		
-		return loss;
 	}
 };
 

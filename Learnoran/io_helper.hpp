@@ -20,11 +20,23 @@ public:
 		}
 	}
 
+	IOhelper(const IOhelper & rhs) : filename(rhs.filename) {
+		stream.open(filename);
+		if (!stream.is_open()) {
+			throw CannotOpenFileException();
+		}
+	}
+
+	IOhelper operator=(const IOhelper & rhs) {
+		IOhelper copyObject(rhs);
+		return copyObject;
+	}
+
 	std::vector<std::string> get_csv_header() const {
 		return csv_header;
 	}
 
-	std::pair<std::vector<std::vector<double>>, std::vector<double>> read_csv(const unsigned row_count = UNKNOWN, const char delimiter = ',') {
+	std::pair<std::vector<std::vector<double>>, std::vector<double>> read_csv_split(const unsigned row_count = UNKNOWN, const char delimiter = ',') {
 		// Assumes the dataset is composed of numerical data only and the labels are residing at the last column!
 		// Args:
 		// - row_count: number of rows in the dataset - speeds up the operation. If row_count is larger than the 
