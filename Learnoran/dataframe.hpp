@@ -5,6 +5,7 @@
 #include <utility>
 #include <string>
 #include <iostream> // std::std::cout, for debugging purposes only
+#include <unordered_map>
 
 #include "lo_exception.hpp"
 

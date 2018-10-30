@@ -13,8 +13,11 @@
 using namespace std;
 
 int main() {
-	//try {
-		IOhelper iohelper("C:\\Users\\oranc\\Documents\\dev\\repos\\Learnoran\\dataset\\train.csv");
+	try {
+        cout << "Enter the directory for training data:\n>> ";
+        string training_data_path;
+        cin >> training_data_path;
+		IOhelper iohelper(training_data_path);
 		pair<vector<vector<double>>, vector<double>> dataset = iohelper.read_csv_split(3000);
 		Dataframe df(dataset, iohelper.get_csv_header());
 
@@ -43,6 +46,10 @@ int main() {
 			}
 			cout << predictor.predict(df.get_row_feature(row)) << endl;
 		}
+    }
+    catch (const LearnoranException & exc) {
+        cout << exc.what() << endl;
+    }
 
 	return 0;
 }
