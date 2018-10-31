@@ -24,6 +24,7 @@
     <ClInclude Include="linear_model.hpp" />
     <ClInclude Include="polynomial.hpp" />
     <ClInclude Include="lo_exception.hpp" />
+    <ClInclude Include="predictor.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -94,6 +95,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <BasicRuntimeChecks>StackFrameRuntimeCheck</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

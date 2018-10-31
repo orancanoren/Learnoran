@@ -10,10 +10,11 @@
 #include <iostream> // std::cout, only for debug
 #include <omp.h>
 
+#include "predictor.hpp"
 #include "polynomial.hpp"
 #include "dataframe.hpp"
 
-class LinearModel {
+class LinearModel : public Predictor {
 public:
 	LinearModel() { }
 
@@ -43,7 +44,7 @@ public:
 		return predict(feature_map);
 	}
 
-	double compute_mean_square_error(const Dataframe & dataframe) {
+	double compute_mean_square_error(const Dataframe & dataframe) const {
 		DataframeShape shape = dataframe.shape();
 
 		double loss = 0;
