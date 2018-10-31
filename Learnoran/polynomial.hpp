@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <cmath>
+#include <ostream>
 
 #include "lo_exception.hpp"
 
