@@ -14,8 +14,16 @@ using namespace std;
 
 int main() {
 	try {
-		IOhelper iohelper("C:\\Users\\oranc\\Documents\\dev\\repos\\Learnoran\\dataset\\train.csv");
-		pair<vector<vector<double>>, vector<double>> dataset = iohelper.read_csv(333);
+        string training_dataset_file;
+        unsigned training_dataset_rows = 0;
+        cout << "Enter the directory for the training dataset CSV\n>> ";
+        cin >> training_dataset_file;
+		IOhelper iohelper(training_dataset_file.c_str());
+
+        cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
+        cin >> training_dataset_rows;
+
+		pair<vector<vector<double>>, vector<double>> dataset = iohelper.read_csv(training_dataset_rows);
 		Dataframe df(dataset, iohelper.get_csv_header());
 
 		LinearModel predictor;
@@ -30,8 +38,16 @@ int main() {
 		cout << "Training done in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms\n\n";
 
 		// Predict test dataset
-		iohelper.change_file("C:\\Users\\oranc\\Documents\\dev\\repos\\Learnoran\\dataset\\test.csv");
-		pair<vector<vector<double>>, vector<double>> test_dataset = iohelper.read_csv(333, ',', false);
+        string testing_dataset_file;
+        unsigned testing_dataset_rows;
+        cout << "Enter the directory for the testing dataset CSV\n>> ";
+        cin >> testing_dataset_file;
+		iohelper.change_file(testing_dataset_file.c_str());
+
+        cout << "Enter the number of rows in the testing dataset (enter 0 if unknown)\n>> ";
+        cin >> testing_dataset_rows;
+
+		pair<vector<vector<double>>, vector<double>> test_dataset = iohelper.read_csv(testing_dataset_rows, ',', false);
 		Dataframe test_df(test_dataset, iohelper.get_csv_header());
 
 		cout << "Predicting the test dataset" << endl;
