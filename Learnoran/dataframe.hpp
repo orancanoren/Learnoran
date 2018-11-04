@@ -5,6 +5,7 @@
 #include <utility>
 #include <string>
 #include <iostream> // std::std::cout, for debugging purposes only
+#include <unordered_map>
 
 #include "lo_exception.hpp"
 
@@ -12,7 +13,7 @@ struct DataframeShape {
 	DataframeShape(unsigned rows, unsigned short columns) : rows(rows), columns(columns) { }
 
 	unsigned rows;
-	unsigned short columns;
+	size_t columns;
 };
 
 class Dataframe {
@@ -56,6 +57,10 @@ public:
 
 	double get_row_label(const unsigned index) const  {
 		return labels[index];
+	}
+	
+	std::vector<double> get_row_feature_array(const unsigned index) const {
+		return features[index];
 	}
 
 	void print_interval(unsigned lower_index, unsigned higher_index) const  {

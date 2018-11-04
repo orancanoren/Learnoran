@@ -1,7 +1,7 @@
 #ifndef _LEARNORAN_EXCEPTION_HPP
 #define _LEARNORAN_EXCEPTION_HPP
 
-#include <exception>
+#include <stdexcept>
 
 // MARK: Learnoran Exception
 
