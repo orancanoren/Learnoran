@@ -25,5 +25,59 @@ namespace EncryptionTest
 
 			Assert::AreEqual(plaintext, decrypted, 0.00001, L"E(D(x)) must evaluate to x", LINE_INFO());
 		}
+
+		TEST_METHOD(HomomorphicArithmeticAddition)
+		{
+			// TODO: Your test code here
+			EncryptionManager<double> manager;
+
+			const double value1 = 2.37;
+			const double value2 = 5.8465;
+
+			EncryptedNumber ciphertext1 = manager.encrypt(value1);
+			EncryptedNumber ciphertext2 = manager.encrypt(value2);
+
+			EncryptedNumber addition_result = ciphertext1 + ciphertext2;
+
+			double decrypted_result = manager.decrypt(addition_result);
+
+			Assert::AreEqual(value1 + value2, decrypted_result, 0.00001, L"D(E(2.37)+E(5.8465)) must evaluate to correct result", LINE_INFO());
+		}
+
+		TEST_METHOD(HomomorphicArithmeticSubtraction)
+		{
+			// TODO: Your test code here
+			EncryptionManager<double> manager;
+
+			const double value1 = 2.37;
+			const double value2 = 5.8465;
+
+			EncryptedNumber ciphertext1 = manager.encrypt(value1);
+			EncryptedNumber ciphertext2 = manager.encrypt(value2);
+
+			EncryptedNumber addition_result = ciphertext1 - ciphertext2;
+
+			double decrypted_result = manager.decrypt(addition_result);
+
+			Assert::AreEqual(value1 - value2, decrypted_result, 0.00001, L"D(E(2.37)-E(5.8465)) must evaluate to correct result", LINE_INFO());
+		}
+
+		TEST_METHOD(HomomorphicArithmeticMultiplication)
+		{
+			// TODO: Your test code here
+			EncryptionManager<double> manager;
+
+			const double value1 = 2.37;
+			const double value2 = 5.8465;
+
+			EncryptedNumber ciphertext1 = manager.encrypt(value1);
+			EncryptedNumber ciphertext2 = manager.encrypt(value2);
+
+			EncryptedNumber addition_result = ciphertext1 * ciphertext2;
+
+			double decrypted_result = manager.decrypt(addition_result);
+
+			Assert::AreEqual(value1 * value2, decrypted_result, 0.00001, L"D(E(2.37)*E(5.8465)) must evaluate to correct result", LINE_INFO());
+		}
 	};
 }
