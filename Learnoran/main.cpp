@@ -3,6 +3,7 @@
 #include <random>
 #include <vector>
 #include <chrono>
+#include <memory>
 
 #include "lo_exception.hpp"
 #include "polynomial.hpp"
@@ -10,6 +11,7 @@
 #include "dataframe.hpp"
 #include "linear_model.hpp"
 #include "encryption_manager.hpp"
+#include "decryption_manager.hpp"
 
 using namespace std;
 using namespace Learnoran;
@@ -49,19 +51,28 @@ int main() {
 	pair<vector<vector<double>>, vector<double>> dataset = iohelper.read_csv(training_dataset_rows);
 	Dataframe<double> df(dataset, iohelper.get_csv_header());
 
-	EncryptionManager<double> manager;
+	EncryptionManager encryption_manager;
+	DecryptionManager decryption_manager(encryption_manager.get_secret_key());
 
 	const DataframeShape shape = df.shape();
 	
 	cout << "Encrypting the dataframe [" << shape.rows << " rows and " << shape.columns << " columns]" << endl;
 	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now(), end;
-	Dataframe<EncryptedNumber> encrypted_dataframe = manager.encrypt_dataframe(df);
+	Dataframe<EncryptedNumber> encrypted_dataframe = encryption_manager.encrypt_dataframe(df);
 	end = chrono::high_resolution_clock::now();
 	cout << "Dataframe encrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
 
+	// TRAINING STEP
+	const double learning_rate = 0.00001;
+	const unsigned short epochs = 1000;
+	LinearModel model(encryption_manager);
+	cout << "Training the linear model" << endl;
+	model.fit(encrypted_dataframe, epochs, learning_rate, encryption_manager.encrypt(0.0));
+	cout << "Model trained" << endl;
+
 	cout << "Decrypting the dataframe" << endl;
 	begin = chrono::high_resolution_clock::now();
-	Dataframe<double> decrypted_dataframe = manager.decrypt_dataframe(encrypted_dataframe);
+	Dataframe<double> decrypted_dataframe = decryption_manager.decrypt_dataframe(encrypted_dataframe);
 	end = chrono::high_resolution_clock::now();
 	cout << "Dataframe decrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
 

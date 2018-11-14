@@ -7,12 +7,17 @@
 
 #include "encrypted_number.hpp"
 #include "dataframe.hpp"
+#include "bfv_parameters.hpp"
+
+/*
+EncryptionManager is mainly responsible for type conversion between double and EncryptedNumber;
+it is intended to be used with doubles
+*/
 
 namespace Learnoran {
-	template <typename T>
 	class EncryptionManager {
 	public:
-		EncryptionManager(size_t polynomial_modulus_degree = 2048, uint64_t plain_modulus = 1 << 8, const char * public_key_file = "", const char * secret_key_file = "") {//, const char * public_key_file = "", const char * secret_key_file = "") {
+		EncryptionManager(BFVParameters parameters = BFVParameters(), const char * public_key_file = "") {//, const char * public_key_file = "", const char * secret_key_file = "") {
 			/*
 			If no public key file is given, EncryptionManager generates public and secret keys using SEAL
 			Otherwise if only public key is given, secret key is not generated.
@@ -20,13 +25,13 @@ namespace Learnoran {
 
 			// set encryption parameters
 			seal::EncryptionParameters encryption_parameters(seal::scheme_type::BFV);
-			encryption_parameters.set_poly_modulus_degree(polynomial_modulus_degree);
-			encryption_parameters.set_coeff_modulus(seal::coeff_modulus_128(polynomial_modulus_degree));
-			encryption_parameters.set_plain_modulus(plain_modulus);
+			encryption_parameters.set_poly_modulus_degree(parameters.polynomial_modulus_degree);
+			encryption_parameters.set_coeff_modulus(seal::coeff_modulus_128(parameters.polynomial_modulus_degree));
+			encryption_parameters.set_plain_modulus(parameters.plain_modulus);
 
 			context = seal::SEALContext::Create(encryption_parameters);
 
-			encoder = std::make_shared<seal::FractionalEncoder>(encryption_parameters.plain_modulus(), polynomial_modulus_degree, 1024, 1024);
+			encoder = std::make_shared<seal::FractionalEncoder>(encryption_parameters.plain_modulus(), parameters.polynomial_modulus_degree, 1024, 1024);
 
 			seal::KeyGenerator keygen(context);
 			/* ======== COMMENTED OUT BECAUSE OF ISSUES WITH io_seal ==========
@@ -63,7 +68,7 @@ namespace Learnoran {
 			}
 		}
 
-		EncryptedNumber encrypt(const T & x) {
+		EncryptedNumber encrypt(const double & x) const {
 			seal::Plaintext plaintext = encoder->encode(x);
 			seal::Ciphertext ciphertext;
 
@@ -72,16 +77,7 @@ namespace Learnoran {
 			return EncryptedNumber(ciphertext, evaluator, encoder);
 		}
 
-		T decrypt(const EncryptedNumber & ciphertext) {
-			seal::Plaintext plaintext;
-			decryptor->decrypt(ciphertext.ciphertext, plaintext);
-
-			double result = encoder->decode(plaintext);
-
-			return result;
-		}
-
-		Dataframe<EncryptedNumber> encrypt_dataframe(Dataframe<T> & df) {
+		Dataframe<EncryptedNumber> encrypt_dataframe(Dataframe<double> & df) const {
 			const DataframeShape shape = df.shape();
 
 			std::vector<std::vector<EncryptedNumber>> encrypted_features(shape.rows);
@@ -91,8 +87,8 @@ namespace Learnoran {
 #pragma omp parallel for
 #endif
 			for (int row = 0; row < shape.rows; row++) {
-				const std::vector<T> & feature_row = df.get_row_feature_array(row);
-				const unsigned feature_columns = shape.columns - 1;
+				const std::vector<double> & feature_row = df.get_row_feature_array(row);
+				const size_t feature_columns = shape.columns - 1;
 				encrypted_features[row].resize(feature_columns);
 
 				for (unsigned col = 0; col < feature_columns ; col++) {
@@ -107,30 +103,16 @@ namespace Learnoran {
 			return encrypted_df;
 		}
 	
-		Dataframe<T> decrypt_dataframe(Dataframe<EncryptedNumber> & df) {
-			const DataframeShape shape = df.shape();
+		EncryptedNumber get_zero() const {
+			seal::Plaintext zero_value = encoder->encode(0.0);
+			seal::Ciphertext encrypted_zero;
+			encryptor->encrypt(zero_value, encrypted_zero);
+			
+			return EncryptedNumber(encrypted_zero, evaluator, encoder);
+		}
 
-			std::vector<std::vector<T>> decrypted_features(shape.rows);
-			std::vector<T> decrypted_labels(shape.rows);
-
-#ifndef _SEQUENTIAL
-#pragma omp parallel for
-#endif
-			for (int row = 0; row < shape.rows; row++) {
-				const std::vector<EncryptedNumber> & feature_row = df.get_row_feature_array(row);
-				const unsigned feature_columns = shape.columns - 1;
-				decrypted_features[row].resize(feature_columns);
-
-				for (unsigned col = 0; col < feature_columns; col++) {
-					T decrypted_feature_value = decrypt(feature_row[col]);
-					decrypted_features[row][col] = decrypted_feature_value;
-				}
-
-				decrypted_labels[row] = decrypt(df.get_row_label(row));
-			}
-
-			Dataframe<T> decrypted_df(decrypted_features, decrypted_labels, df.get_headers());
-			return decrypted_df;
+		seal::SecretKey get_secret_key() const {
+			return secret_key; 
 		}
 private:
 		seal::Encryptor * encryptor;

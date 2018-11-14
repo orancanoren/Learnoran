@@ -3,6 +3,7 @@
 
 #define UNKNOWN 0
 
+#include <seal/seal.h>
 #include <string>
 #include <fstream>
 #include <vector>
@@ -46,7 +47,7 @@ namespace Learnoran {
 			parse_csv_header(delimiter);
 
 			const size_t column_count = csv_header.size();
-			const unsigned feature_columns = data_contains_labels ? column_count - 1 : column_count;
+			const size_t feature_columns = data_contains_labels ? column_count - 1 : column_count;
 			if (row_count != UNKNOWN) {
 				features.resize(row_count);
 				for (unsigned short i = 0; i < features.size(); i++) {
@@ -87,6 +88,19 @@ namespace Learnoran {
 
 			return std::make_pair(features, labels);
 		}
+	
+		seal::SecretKey read_secret_key(const char * const filename) {
+			stream.close();
+			stream.open(filename, std::ios::binary);
+			if (!stream.is_open()) {
+				throw CannotOpenFileException();
+			}
+
+			seal::SecretKey secret_key;
+			secret_key.load(stream);
+
+			return secret_key;
+		}
 	protected:
 		void parse_csv_header(const char delimiter = ',') {
 			std::vector<std::string> columns;
@@ -106,7 +120,7 @@ namespace Learnoran {
 
 		void static_row_append(std::vector<std::vector<double>> & features, std::vector<double> & labels, std::istringstream & line_stream, const unsigned short row, const char delimiter = ',', bool populate_labels = true) {
 			std::string column_value;
-			const unsigned feature_columns = populate_labels ? csv_header.size() - 1 : csv_header.size();
+			const size_t feature_columns = populate_labels ? csv_header.size() - 1 : csv_header.size();
 
 			for (unsigned short feature_column = 0; feature_column < feature_columns; feature_column++) {
 				std::getline(line_stream, column_value, delimiter);
@@ -121,7 +135,7 @@ namespace Learnoran {
 
 		void dynamic_row_append(std::vector<std::vector<double>> & features, std::vector<double> & labels, std::istringstream & line_stream, const char delimiter = ',', bool populate_labels = true) {
 			std::string column_value;
-			const unsigned feature_columns = populate_labels ? csv_header.size() - 1 : csv_header.size();
+			const size_t feature_columns = populate_labels ? csv_header.size() - 1 : csv_header.size();
 
 			std::vector<double> current_features(feature_columns);
 			for (unsigned short feature_column = 0; feature_column < feature_columns; feature_column++) {

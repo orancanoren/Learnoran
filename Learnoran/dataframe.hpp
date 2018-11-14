@@ -48,7 +48,7 @@ namespace Learnoran {
 		}
 
 		std::unordered_map<std::string, T> get_row_feature(const unsigned index) const {
-			const std::vector<double> & values = features[index];
+			const std::vector<T> & values = features[index];
 			std::unordered_map<std::string, T> feature_row;
 
 			for (unsigned short index = 0; index < values.size(); index++) {
@@ -78,6 +78,10 @@ namespace Learnoran {
 
 		std::vector<std::string> get_headers() const {
 			return std::vector<std::string>(columns.begin(), columns.end());
+		}
+
+		std::vector<std::string> get_feature_headers() const {
+			return std::vector<std::string>(columns.begin(), columns.end() - 1);
 		}
 
 		std::string get_label_header() const {

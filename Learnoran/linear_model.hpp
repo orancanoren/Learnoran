@@ -1,7 +1,7 @@
 #ifndef _LINEAR_MODEL_HPP
 #define _LINEAR_MODEL_HPP
 
-//#define _SEQUENTIAL
+#define _SEQUENTIAL
 
 #include <random>
 #include <string>
@@ -13,15 +13,18 @@
 #include "predictor.hpp"
 #include "polynomial.hpp"
 #include "dataframe.hpp"
+#include "encrypted_number.hpp"
+#include "encryption_manager.hpp"
 
 namespace Learnoran {
-	template <typename T>
-	class LinearModel : public Predictor<T> {
+	class LinearModel : public Predictor {
 	public:
-		LinearModel() { }
+		LinearModel(const EncryptionManager & encryption_manager) : encryption_manager(encryption_manager) { }
 
-		void fit(const Dataframe<T> & dataframe, const unsigned short epochs, const double learning_rate) {
-			initialize_model(dataframe);
+		// MARK: FIT (i.e. training)
+
+		void fit(const Dataframe<double> & dataframe, const unsigned short epochs, const double learning_rate) override  {
+			initialize_plaintext_model(dataframe);
 
 			for (unsigned short epoch = 0; epoch < epochs; epoch++) {
 				mse_batch_gd(dataframe, learning_rate);
@@ -32,11 +35,25 @@ namespace Learnoran {
 			std::cout << "final loss: " << compute_mean_square_error(dataframe) << std::endl;
 		}
 
-		T predict(const std::unordered_map<std::string, T> features) const {
-			return model(features);
+		void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate, EncryptedNumber encrypted_zero) override {
+			initialize_encrypted_model(dataframe);
+
+			for (unsigned short epoch = 0; epoch < epochs; epoch++) {
+				mse_batch_gd(dataframe, learning_rate);
+			}
 		}
 
-		T predict(const std::initializer_list<std::pair<std::string, T>> features) const {
+		// MARK: PREDICTION
+
+		double predict(const std::unordered_map<std::string, double> features) const override  {
+			return plaintext_model(features);
+		}
+
+		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> features, EncryptedNumber encrypted_zero) const override {
+			return encrypted_model(features, encrypted_zero);
+		}
+
+		double predict(const std::initializer_list<std::pair<std::string, double>> features) const    {
 			std::unordered_map<std::string, double> feature_map;
 
 			for (const std::pair<std::string, double> & feature : features) {
@@ -46,27 +63,26 @@ namespace Learnoran {
 			return predict(feature_map);
 		}
 
-		double compute_mean_square_error(const Dataframe<T> & dataframe) const {
-			DataframeShape shape = dataframe.shape();
+		// MARK: MODEL ACCURACY ASSESSMENT
 
-			double loss = 0;
-			for (unsigned row = 0; row < shape.rows; row++) {
-				const double real_value = dataframe.get_row_label(row);
-				std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
+		double compute_mean_square_error(const Dataframe<double> & dataframe) const;
 
-				const double model_error = model(row_features) - real_value;
-				loss += model_error * model_error;
-			}
-			loss *= 1.0 / (shape.rows);
-
-			return loss;
-		}
+		EncryptedNumber compute_mean_square_error(const Dataframe<EncryptedNumber> & dataframe, EncryptedNumber encrypted_zero) const;
 	private:
-		Polynomial model;
+		// MARK: LINEAR_MODEL MEMBERS
+		
+		// Only one of the following models will be being used by an instance of this class as this class is intended
+		// to be used with either double or EncryptedNumber types.
+		Polynomial<double> plaintext_model;
+		Polynomial<EncryptedNumber> encrypted_model;
+
+		const EncryptionManager & encryption_manager;
+
+		// MARK: LINEAR_MODEL PRIVATE MEMBER FUNCTION DECLERATIONS (and definitions)
 
 		static double random_standard_normal() {
 			std::mt19937 generator;
-			std::normal_distribution<T> sn_distribution(0, 1);
+			std::normal_distribution<double> sn_distribution(0, 1);
 			return sn_distribution(generator);
 		}
 
@@ -79,37 +95,50 @@ namespace Learnoran {
 			return false;
 		}
 
-		void initialize_model(const Dataframe<T> & dataframe) {
+		void initialize_encrypted_model(const Dataframe<EncryptedNumber> & dataframe) {
 			// construct a linear polynomial with random coefficients from the standard normal distribution
 			const std::vector<std::string> variable_symbols = dataframe.get_feature_headers();
 
 			for (const std::string & variable : variable_symbols) {
-				model.add_term(random_standard_normal(), variable, 1);
+				encrypted_model.add_term(encryption_manager.encrypt(random_standard_normal()), variable, 1);
 			}
 
 			// add the bias term
-			model.set_constant_term(random_standard_normal(), "bias");
+			encrypted_model.set_constant_term(encryption_manager.encrypt(random_standard_normal()), "bias");
+		}
+
+		void initialize_plaintext_model(const Dataframe<double> & dataframe) {
+			// construct a linear polynomial with random coefficients from the standard normal distribution
+			const std::vector<std::string> variable_symbols = dataframe.get_feature_headers();
+
+			for (const std::string & variable : variable_symbols) {
+				plaintext_model.add_term(random_standard_normal(), variable, 1);
+			}
+
+			// add the bias term
+			plaintext_model.set_constant_term(random_standard_normal(), "bias");
 		}
 
 		void print_model_coefficients(std::ostream & os) {
-			const std::unordered_map<std::string, PolynomialTerm> terms = model.get_terms();
-			for (const std::pair<std::string, PolynomialTerm> & term : terms) {
+			// this function should only be used with plaintext models
+			const std::unordered_map<std::string, PolynomialTerm<double>> terms = plaintext_model.get_terms();
+			for (const std::pair<std::string, PolynomialTerm<double>> & term : terms) {
 				os << term.first << '\t';
 			}
 			os << '\n';
-			for (const std::pair<std::string, PolynomialTerm> & term : terms) {
+			for (const std::pair<std::string, PolynomialTerm<double>> & term : terms) {
 				os << term.second.coefficient << '\t';
 			}
 			os << '\n';
 		}
 
-		void mse_batch_gd(const Dataframe<T> & dataframe, const double learning_rate) {
+		void mse_batch_gd(const Dataframe<double> & dataframe, const double learning_rate) {
 			// applies gradient descent to MSE cost function
 
 			DataframeShape shape = dataframe.shape();
 
 			// go over each parameter and optimize them one by one
-			for (std::pair<std::string, PolynomialTerm> term : model.get_terms()) {
+			for (std::pair<std::string, PolynomialTerm<double>> term : plaintext_model.get_terms()) {
 				const std::string current_parameter = term.first;
 				const unsigned current_parameter_exponent = term.second.exponent;
 
@@ -121,7 +150,7 @@ namespace Learnoran {
 					const double real_value = dataframe.get_row_label(row);
 					std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
 
-					const double model_prediction = model(row_features);
+					const double model_prediction = plaintext_model(row_features);
 					const double model_error = model_prediction - real_value;
 					const double inner_derivative = pow(row_features[current_parameter], current_parameter_exponent);
 					const double normalizer = 1.0 / shape.rows;
@@ -133,14 +162,87 @@ namespace Learnoran {
 					derivative_cost_function += current_row_error;
 				}
 
-				double current_parameter_value = model[current_parameter];
+				double current_parameter_value = plaintext_model[current_parameter];
 				double parameter_new_value = current_parameter_value - (learning_rate * derivative_cost_function);
 
 
-				model[current_parameter] = parameter_new_value;
+				plaintext_model[current_parameter] = parameter_new_value;
+			}
+		}
+
+		void mse_batch_gd(const Dataframe<EncryptedNumber> & dataframe, const double learning_rate) {
+			// applies gradient descent to MSE cost function
+
+			DataframeShape shape = dataframe.shape();
+
+			// go over each parameter and optimize them one by one
+			for (std::pair<std::string, PolynomialTerm<EncryptedNumber>> term : encrypted_model.get_terms()) {
+				const std::string current_parameter = term.first;
+				const unsigned current_parameter_exponent = term.second.exponent;
+
+				EncryptedNumber derivative_cost_function = encryption_manager.encrypt(0.0);
+#ifndef _SEQUENTIAL
+#pragma omp parallel for
+#endif
+				for (int row = 0; row < shape.rows; row++) {
+					const EncryptedNumber real_value = dataframe.get_row_label(row);
+					std::unordered_map<std::string, EncryptedNumber> row_features = dataframe.get_row_feature(row);
+
+					const EncryptedNumber model_prediction = encrypted_model(row_features, encryption_manager.encrypt(0.0));
+					const EncryptedNumber model_error = model_prediction - real_value;
+					const EncryptedNumber inner_derivative = EncryptedNumber::pow(row_features[current_parameter], current_parameter_exponent);
+					const double normalizer = 1.0 / shape.rows;
+
+					EncryptedNumber current_row_error =  model_error * inner_derivative * normalizer;
+#ifndef _SEQUENTIAL
+#pragma omp critical
+					{
+#endif
+						derivative_cost_function += current_row_error;
+#ifndef _SEQUENTIAL
+					}
+#endif
+				}
+
+				EncryptedNumber current_parameter_value = encrypted_model[current_parameter];
+				EncryptedNumber parameter_new_value = current_parameter_value - (derivative_cost_function * learning_rate);
+
+				encrypted_model[current_parameter] = parameter_new_value;
 			}
 		}
 	};
+
+	double LinearModel::compute_mean_square_error(const Dataframe<double> & dataframe) const {
+		DataframeShape shape = dataframe.shape();
+		double loss = 0.0;
+
+		for (unsigned row = 0; row < shape.rows; row++) {
+			const double real_value = dataframe.get_row_label(row);
+			std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
+
+			const double model_error = plaintext_model(row_features) - real_value;
+			loss += model_error * model_error;
+		}
+		loss *= 1.0 / (shape.rows);
+
+		return loss;
+	}
+
+	EncryptedNumber LinearModel::compute_mean_square_error(const Dataframe<EncryptedNumber> & dataframe, EncryptedNumber encrypted_zero) const {
+		DataframeShape shape = dataframe.shape();
+		EncryptedNumber loss = encrypted_zero;
+
+		for (unsigned row = 0; row < shape.rows; row++) {
+			const EncryptedNumber real_value = dataframe.get_row_label(row);
+			std::unordered_map<std::string, EncryptedNumber> row_features = dataframe.get_row_feature(row);
+
+			EncryptedNumber model_error = encrypted_model(row_features, encrypted_zero) - real_value;
+			loss += model_error * model_error;
+		}
+		loss *= 1.0 / (shape.rows);
+
+		return loss;
+	}
 }
 
 #endif
