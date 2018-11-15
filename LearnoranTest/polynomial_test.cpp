@@ -3,6 +3,7 @@
 #include "Learnoran/polynomial.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+using namespace Learnoran;
 
 namespace PolynomialTest
 {
@@ -13,7 +14,7 @@ namespace PolynomialTest
 		TEST_METHOD(EvaluationOperatorSingleVariable)
 		{
 			// TODO: Your test code here
-			Polynomial polynomial;
+			Polynomial<double> polynomial;
 			polynomial.add_term(3, "x", 2);
 
 			Assert::AreEqual(75.0, polynomial({ {"x", 5} }), L"3x^2 must evaluate to 75 for x = 5", LINE_INFO());
@@ -22,7 +23,7 @@ namespace PolynomialTest
 
 		TEST_METHOD(EvaluationOperatorMultivariate)
 		{
-			Polynomial polynomial;
+			Polynomial<double> polynomial;
 			polynomial.add_term(9, "x", 3);
 			polynomial.add_term(2, "y", 1);
 
@@ -33,21 +34,21 @@ namespace PolynomialTest
 
 		TEST_METHOD(PartialDerivativeSingleVariable)
 		{
-			Polynomial polynomial;
+			Polynomial<double> polynomial;
 			polynomial.add_term(2, "x", 7);
 
-			Polynomial derived = polynomial.partial_derivative("x");
+			Polynomial<double> derived = polynomial.partial_derivative("x");
 
 			Assert::AreEqual(896.0, derived({ {"x", 2} }), L"2^7 partial derivative WRT x must evaluate to 896 for x = 2", LINE_INFO());
 		}
 
 		TEST_METHOD(PartialDerivativeMultivariate)
 		{
-			Polynomial polynomial;
+			Polynomial<double> polynomial;
 			polynomial.add_term(143, "x", 9);
 			polynomial.add_term(2, "y", 12);
 
-			Polynomial derived = polynomial.partial_derivative("y");
+			Polynomial<double> derived = polynomial.partial_derivative("y");
 
 			Assert::AreEqual(4251528.0, derived({ {"y", 3} }), L"143x^9 + 2y^12 partial derivative WRT y must evaluate to 4251528 for y = 3", LINE_INFO());
 		}
