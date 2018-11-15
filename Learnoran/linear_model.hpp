@@ -1,7 +1,7 @@
 #ifndef _LINEAR_MODEL_HPP
 #define _LINEAR_MODEL_HPP
 
-#define _SEQUENTIAL
+//#define _SEQUENTIAL
 
 #include <random>
 #include <string>
@@ -40,6 +40,7 @@ namespace Learnoran {
 
 			for (unsigned short epoch = 0; epoch < epochs; epoch++) {
 				mse_batch_gd(dataframe, learning_rate);
+				std::cout << "epoch " << epoch << "/" << epochs << " completed" << std::endl;
 			}
 		}
 

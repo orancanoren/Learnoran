@@ -163,7 +163,7 @@ namespace Learnoran {
 			if (it->first == constant_term_symbol) {
 				continue;
 			}
-			EncryptedNumber variable_expression = EncryptedNumber::pow(evaluation_parameters.find(it->first)->second, it->second.exponent);
+			EncryptedNumber variable_expression(EncryptedNumber::pow(evaluation_parameters.find(it->first)->second, it->second.exponent));
 			result += variable_expression * it->second.coefficient;
 		}
 

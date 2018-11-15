@@ -24,13 +24,13 @@ namespace Learnoran {
 
 		// MARK: Operators
 
-		EncryptedNumber & operator=(const EncryptedNumber & rhs) {
+		EncryptedNumber & operator=(EncryptedNumber rhs) {
 			this->ciphertext = rhs.ciphertext;
 			this->evaluator = rhs.evaluator;
 			return *this;
 		}
 
-		EncryptedNumber & operator+(const EncryptedNumber & rhs) const  {
+		EncryptedNumber operator+(const EncryptedNumber & rhs) const  {
 			seal::Ciphertext result;
 
 			evaluator->add(ciphertext, rhs.ciphertext, result);
@@ -38,7 +38,7 @@ namespace Learnoran {
 			return result_number;
 		}
 
-		EncryptedNumber & operator-(const EncryptedNumber & rhs) const  {
+		EncryptedNumber operator-(const EncryptedNumber & rhs) const  {
 			seal::Ciphertext result;
 
 			evaluator->negate(rhs.ciphertext, result);
@@ -48,7 +48,7 @@ namespace Learnoran {
 			return result_number;
 		}
 
-		EncryptedNumber & operator*(const EncryptedNumber & rhs) const  {
+		EncryptedNumber operator*(const EncryptedNumber & rhs) const  {
 			seal::Ciphertext result;
 
 			evaluator->multiply(ciphertext, rhs.ciphertext, result);
@@ -57,7 +57,7 @@ namespace Learnoran {
 			return result_number;
 		}
 
-		EncryptedNumber & operator*(const double & rhs) const  {
+		EncryptedNumber operator*(const double & rhs) const  {
 			seal::Plaintext encoded_rhs = encoder->encode(rhs);
 			seal::Ciphertext result;
 
@@ -91,7 +91,7 @@ namespace Learnoran {
 
 		// MARK: Members
 
-		static EncryptedNumber & pow(const EncryptedNumber & base, unsigned exponent) {
+		static EncryptedNumber pow(const EncryptedNumber & base, unsigned exponent) {
 			// naive implementation of raising base to exponent
 			EncryptedNumber result = base;
 
