@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <iostream> // std::cout, only for debug
 #include <omp.h>
+#include <chrono>
 
 #include "predictor.hpp"
 #include "polynomial.hpp"
@@ -35,12 +36,12 @@ namespace Learnoran {
 			std::cout << "final loss: " << compute_mean_square_error(dataframe) << std::endl;
 		}
 
-		void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate, EncryptedNumber encrypted_zero) override {
+		void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate) override {
 			initialize_encrypted_model(dataframe);
 
 			for (unsigned short epoch = 0; epoch < epochs; epoch++) {
 				mse_batch_gd(dataframe, learning_rate);
-				std::cout << "epoch " << epoch << "/" << epochs << " completed" << std::endl;
+				std::cout << "epoch " << epoch + 1 << "/" << epochs << " completed" << std::endl;
 			}
 		}
 
@@ -153,7 +154,12 @@ namespace Learnoran {
 
 					const double model_prediction = plaintext_model(row_features);
 					const double model_error = model_prediction - real_value;
-					const double inner_derivative = pow(row_features[current_parameter], current_parameter_exponent);
+
+					double inner_derivative = 1;
+					if (current_parameter != "bias") {
+						inner_derivative = std::pow(row_features[current_parameter], current_parameter_exponent);
+					}
+
 					const double normalizer = 1.0 / shape.rows;
 
 					double current_row_error = normalizer * model_error * inner_derivative;
@@ -179,22 +185,27 @@ namespace Learnoran {
 			// go over each parameter and optimize them one by one
 			for (std::pair<std::string, PolynomialTerm<EncryptedNumber>> term : encrypted_model.get_terms()) {
 				const std::string current_parameter = term.first;
-				const unsigned current_parameter_exponent = term.second.exponent;
+
+				std::cout << "current parameter: " << current_parameter << std::endl;
 
 				EncryptedNumber derivative_cost_function = encryption_manager.encrypt(0.0);
+				
+				// evaluate and reduce-sum the non-constant linear polynomial terms
 #ifndef _SEQUENTIAL
 #pragma omp parallel for
 #endif
 				for (int row = 0; row < shape.rows; row++) {
-					const EncryptedNumber real_value = dataframe.get_row_label(row);
-					std::unordered_map<std::string, EncryptedNumber> row_features = dataframe.get_row_feature(row);
+					const EncryptedNumber & real_value = dataframe.get_row_label(row);
+					const std::unordered_map<std::string, EncryptedNumber> & row_features = dataframe.get_row_feature(row);
 
 					const EncryptedNumber model_prediction = encrypted_model(row_features, encryption_manager.encrypt(0.0));
 					const EncryptedNumber model_error = model_prediction - real_value;
-					const EncryptedNumber inner_derivative = EncryptedNumber::pow(row_features[current_parameter], current_parameter_exponent);
+
+					EncryptedNumber inner_derivative = encryption_manager.encrypt(1.0);
 					const double normalizer = 1.0 / shape.rows;
 
-					EncryptedNumber current_row_error =  model_error * inner_derivative * normalizer;
+					EncryptedNumber current_row_error = model_error * inner_derivative;
+					current_row_error *= normalizer;
 #ifndef _SEQUENTIAL
 #pragma omp critical
 					{
@@ -205,10 +216,14 @@ namespace Learnoran {
 #endif
 				}
 
-				EncryptedNumber current_parameter_value = encrypted_model[current_parameter];
-				EncryptedNumber parameter_new_value = current_parameter_value - (derivative_cost_function * learning_rate);
+				// evaluate and add the constant term of the polynomial
+				derivative_cost_function += encrypted_model.get_constant_term().second.coefficient;
+
+				const EncryptedNumber & current_parameter_value = encrypted_model[current_parameter];
+				const EncryptedNumber & parameter_new_value = current_parameter_value - (derivative_cost_function * learning_rate);
 
 				encrypted_model[current_parameter] = parameter_new_value;
+				std::cout << "Model parameter " << current_parameter << " updated" << std::endl;
 			}
 		}
 	};

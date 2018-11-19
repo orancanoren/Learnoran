@@ -15,8 +15,13 @@ namespace Learnoran {
 			: ciphertext(ciphertext), evaluator(evaluator), encoder(encoder) {
 		}
 
-		// Copy constructor
 		EncryptedNumber(const EncryptedNumber & rhs) {
+			this->ciphertext = rhs.ciphertext;
+			this->encoder = rhs.encoder;
+			this->evaluator = rhs.evaluator;
+		}
+
+		EncryptedNumber(const EncryptedNumber && rhs) {
 			this->ciphertext = rhs.ciphertext;
 			this->encoder = rhs.encoder;
 			this->evaluator = rhs.evaluator;
@@ -75,6 +80,8 @@ namespace Learnoran {
 
 		EncryptedNumber & operator+=(const double & rhs) {
 			evaluator->add_plain_inplace(ciphertext, encoder->encode(rhs));
+
+			return *this;
 		}
 
 		EncryptedNumber & operator*=(const EncryptedNumber & rhs) {
@@ -91,22 +98,22 @@ namespace Learnoran {
 
 		// MARK: Members
 
-		static EncryptedNumber pow(const EncryptedNumber & base, unsigned exponent) {
-			// naive implementation of raising base to exponent
-			EncryptedNumber result = base;
-
-			for (unsigned i = 1; i < exponent; i++) {
-				result *= result;
-			}
-
-			return result;
-		}
-
 		seal::Ciphertext ciphertext;
 	private:
 		std::shared_ptr<seal::Evaluator> evaluator;
 		std::shared_ptr<seal::FractionalEncoder> encoder;
 	};
+
+	EncryptedNumber pow(const EncryptedNumber & base, unsigned exponent) {
+		// naive implementation of raising base to exponent
+		EncryptedNumber result = base;
+
+		for (unsigned i = 1; i < exponent; i++) {
+			result *= result;
+		}
+
+		return result;
+	}
 }
 
 #endif

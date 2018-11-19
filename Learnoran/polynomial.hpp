@@ -55,7 +55,7 @@ namespace Learnoran {
 		}
 
 		void set_constant_term(const T & constant_term, const std::string & constant_term_symbol) {
-			add_term(constant_term, constant_term_symbol, 0);
+			this->constant_term = std::make_pair(constant_term_symbol, PolynomialTerm<T>(constant_term, 0));
 			this->constant_term_symbol = constant_term_symbol;
 		}
 
@@ -123,6 +123,10 @@ namespace Learnoran {
 			return terms;
 		}
 
+		const std::pair<std::string, PolynomialTerm<T>> & get_constant_term() const {
+			return constant_term;
+		}
+
 		std::string constant_term_symbol;
 	private:
 		template <typename K>
@@ -142,6 +146,7 @@ namespace Learnoran {
 		}
 
 		typename std::unordered_map<std::string, PolynomialTerm<T>> terms;
+		typename std::pair<std::string, PolynomialTerm<T>> constant_term;
 	};
 
 	// template specialization for EncryptedNumber type
@@ -159,17 +164,14 @@ namespace Learnoran {
 		}
 
 		EncryptedNumber result = encrypted_zero;
-		for (std::unordered_map<std::string, PolynomialTerm<EncryptedNumber>>::const_iterator it = terms.cbegin(); it != terms.cend(); it++) {
-			if (it->first == constant_term_symbol) {
-				continue;
-			}
-			EncryptedNumber variable_expression(EncryptedNumber::pow(evaluation_parameters.find(it->first)->second, it->second.exponent));
-			result += variable_expression * it->second.coefficient;
+		for (std::unordered_map<std::string, PolynomialTerm<EncryptedNumber>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
+			const EncryptedNumber & variable_value = EncryptedNumber(evaluation_parameters.find(term->first)->second);
+			result += variable_value * term->second.coefficient;
 		}
 
 		// add the constant term
 		if (this->constant_term_symbol != "") {
-			const EncryptedNumber constant_term = terms.find(constant_term_symbol)->second.coefficient;
+			const EncryptedNumber & constant_term = this->constant_term.second.coefficient;
 			result += constant_term;
 		}
 		return result;
@@ -190,16 +192,14 @@ namespace Learnoran {
 		}
 
 		double result = 0.0;
-		for (auto it = terms.cbegin(); it != terms.cend(); it++) {
-			if (it->first == constant_term_symbol) {
-				continue;
-			}
-			result += pow(evaluation_parameters.find(it->first)->second, it->second.exponent) * it->second.coefficient;
+		for (std::unordered_map<std::string, PolynomialTerm<double>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
+			const double & variable_value = evaluation_parameters.find(term->first)->second;
+			result += variable_value * term->second.coefficient;
 		}
 
 		// add the constant term
 		if (this->constant_term_symbol != "") {
-			const double constant_term = terms.find(constant_term_symbol)->second.coefficient;
+			const double & constant_term = this->constant_term.second.coefficient;
 			result += constant_term;
 		}
 		return result;

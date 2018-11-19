@@ -64,10 +64,11 @@ int main() {
 
 	// TRAINING STEP
 	const double learning_rate = 0.00001;
-	const unsigned short epochs = 20;
+	const unsigned short epochs = 2;
 	LinearModel model(encryption_manager);
+
 	cout << "Training the linear model" << endl;
-	model.fit(encrypted_dataframe, epochs, learning_rate, encryption_manager.encrypt(0.0));
+	model.fit(encrypted_dataframe, epochs, learning_rate);
 	cout << "Model trained" << endl;
 
 	cout << "Decrypting the dataframe" << endl;

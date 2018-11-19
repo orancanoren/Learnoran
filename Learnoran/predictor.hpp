@@ -13,7 +13,7 @@ namespace Learnoran {
 		// Predictor::fit -> fits the model parameters to the supplied dataframe such that model error is minimal
 		virtual void fit(const Dataframe<double> & dataframe, const unsigned short epochs, const double learning_rate) = 0;
 
-		virtual void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate, EncryptedNumber encrypted_zero) = 0;
+		virtual void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate) = 0;
 
 		// Predictor::predict -> performs prediction for the supplied feature row and returns the result
 		virtual double predict(const std::unordered_map<std::string, double> features) const = 0;

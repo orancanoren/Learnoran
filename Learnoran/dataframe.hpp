@@ -57,11 +57,11 @@ namespace Learnoran {
 			return feature_row;
 		}
 
-		T get_row_label(const unsigned index) const {
+		const T & get_row_label(const unsigned index) const {
 			return labels[index];
 		}
 
-		std::vector<T> & get_row_feature_array(const unsigned index) {
+		const std::vector<T> & get_row_feature_array(const unsigned index) {
 			return features[index];
 		}
 
