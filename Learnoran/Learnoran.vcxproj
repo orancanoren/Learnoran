@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="bfv_parameters.hpp" />
+    <ClInclude Include="seal_parameters.hpp" />
     <ClInclude Include="dataframe.hpp" />
     <ClInclude Include="decryption_manager.hpp" />
     <ClInclude Include="encrypted_number.hpp" />

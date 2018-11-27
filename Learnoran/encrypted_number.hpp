@@ -4,6 +4,8 @@
 #include <memory>
 #include <seal/seal.h>
 
+// TODO: arithmetic operators should be overloaded as free functions as these operators are commutative
+
 namespace Learnoran {
 	class EncryptedNumber {
 	public:
@@ -29,7 +31,7 @@ namespace Learnoran {
 
 		// MARK: Operators
 
-		EncryptedNumber & operator=(EncryptedNumber rhs) {
+		EncryptedNumber & operator=(const EncryptedNumber rhs) {
 			this->ciphertext = rhs.ciphertext;
 			this->evaluator = rhs.evaluator;
 			return *this;
@@ -73,7 +75,7 @@ namespace Learnoran {
 		}
 
 		EncryptedNumber & operator+=(const EncryptedNumber & rhs) {
-			evaluator->multiply_inplace(ciphertext, rhs.ciphertext);
+			evaluator->add_inplace(ciphertext, rhs.ciphertext);
 
 			return *this;
 		}
@@ -104,12 +106,12 @@ namespace Learnoran {
 		std::shared_ptr<seal::FractionalEncoder> encoder;
 	};
 
-	EncryptedNumber pow(const EncryptedNumber & base, unsigned exponent) {
+	EncryptedNumber pow(const EncryptedNumber & base, const unsigned & exponent) {
 		// naive implementation of raising base to exponent
 		EncryptedNumber result = base;
 
 		for (unsigned i = 1; i < exponent; i++) {
-			result *= result;
+			result *= base;
 		}
 
 		return result;

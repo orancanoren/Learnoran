@@ -4,6 +4,8 @@
 #include <vector>
 #include <chrono>
 #include <memory>
+#include <stdexcept>
+#include <exception>
 
 #include "lo_exception.hpp"
 #include "polynomial.hpp"
@@ -38,70 +40,8 @@ void print_dataframe(Dataframe<T> & df, const unsigned begin_index, const unsign
 }
 
 int main() {
-	string training_dataset_file;
-	IOhelper iohelper;
-	unsigned training_dataset_rows = 0;
-	cout << "Enter the directory for the training dataset CSV\n>> ";
-	cin >> training_dataset_file;
-	iohelper.open_file(training_dataset_file.c_str());
-
-	cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
-	cin >> training_dataset_rows;
-
-	pair<vector<vector<double>>, vector<double>> dataset = iohelper.read_csv(training_dataset_rows);
-	Dataframe<double> df(dataset, iohelper.get_csv_header());
-
-	EncryptionManager encryption_manager;
-	DecryptionManager decryption_manager(encryption_manager.get_secret_key());
-
-	const DataframeShape shape = df.shape();
-	
-	cout << "Encrypting the dataframe [" << shape.rows << " rows and " << shape.columns << " columns]" << endl;
-	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now(), end;
-	Dataframe<EncryptedNumber> encrypted_dataframe = encryption_manager.encrypt_dataframe(df);
-	end = chrono::high_resolution_clock::now();
-	cout << "Dataframe encrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
-
-	// TRAINING STEP
-	const double learning_rate = 0.00001;
-	const unsigned short epochs = 2;
-	LinearModel model(encryption_manager);
-
-	cout << "Training the linear model" << endl;
-	model.fit(encrypted_dataframe, epochs, learning_rate);
-	cout << "Model trained" << endl;
-
-	cout << "Decrypting the dataframe" << endl;
-	begin = chrono::high_resolution_clock::now();
-	Dataframe<double> decrypted_dataframe = decryption_manager.decrypt_dataframe(encrypted_dataframe);
-	end = chrono::high_resolution_clock::now();
-	cout << "Dataframe decrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
-
-	cout << "first ten rows are displayed below." << endl;
-	print_dataframe<double>(decrypted_dataframe, 0, 10);
-	return 0;
-}
-
-/*
-int main() {
-	EncryptionManager<double> manager;
-
-	double val1 = 2.3;
-	double val2 = 3.72;
-
-	EncryptedNumber c1 = manager.encrypt(val1);
-	EncryptedNumber c2 = manager.encrypt(val2);
-
-	EncryptedNumber addition = c1 + c2;
-
-	double dec_res = manager.decrypt(addition);
-	cout << dec_res << endl;
-
-	return 0;
-}*/
-
-/*int main() {
 	try {
+		// 1 - READ DATASET
 		string training_dataset_file;
 		IOhelper iohelper;
 		unsigned training_dataset_rows = 0;
@@ -113,55 +53,93 @@ int main() {
 		cin >> training_dataset_rows;
 
 		pair<vector<vector<double>>, vector<double>> dataset = iohelper.read_csv(training_dataset_rows);
-		Dataframe df(dataset, iohelper.get_csv_header());
+		Dataframe<double> df(dataset, iohelper.get_csv_header());
 
-		// Encrypt the data frame
+		// 2 - DATASET ENCRYPTION
 
-		LinearModel predictor;
+		shared_ptr<EncryptionManager> encryption_manager = make_shared<EncryptionManager>();
+		DecryptionManager decryption_manager(encryption_manager->get_secret_key());
 
+		const DataframeShape shape = df.shape();
+
+		cout << "Encrypting the dataframe [" << shape.rows << " rows and " << shape.columns << " columns]" << endl;
+		chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now(), end;
+		Dataframe<EncryptedNumber> encrypted_dataframe = encryption_manager->encrypt_dataframe(df);
+		end = chrono::high_resolution_clock::now();
+		cout << "Dataframe encrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+
+		// 3 - MODEL TRAINING
 		const double learning_rate = 0.00001;
-		const unsigned short epochs = 1000;
+		const unsigned short epochs = 2;
+		cout << "\n--- Initiating training benchmarks ---\n" << endl
+			<< "1. Training a plaintext model\n" << endl;
 
-		chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
-		predictor.fit(df, epochs, learning_rate);
-		chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+		LinearModel plaintext_model;
+		begin = chrono::high_resolution_clock::now();
+		plaintext_model.fit(df, epochs, learning_rate);
+		end = chrono::high_resolution_clock::now();
+		cout << "Plaintext model training done [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl
+			<< "\n2. Training an encrypted model\n" << endl;
 
-		cout << "Training done in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms\n\n";
+		LinearModel encrypted_model(encryption_manager);
+		begin = chrono::high_resolution_clock::now();
+		encrypted_model.fit(encrypted_dataframe, epochs, learning_rate);
+		end = chrono::high_resolution_clock::now();
+		cout << "\nEncrypted model training done [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
 
-		// Predict test dataset
-		string testing_dataset_file;
-		unsigned testing_dataset_rows;
-		cout << "Enter the directory for the testing dataset CSV\n>> ";
-		cin >> testing_dataset_file;
-		iohelper.open_file(testing_dataset_file.c_str());
+		// 4 - MODEL ACCURACY ASSESSMENT
+		cout << "\n--- Initiating model accuracy assessment ---\n" << endl
+			<< "1. Plaintext model predictions" << endl;
+		
+		const double zn_value = -2.2;
+		const double indus_value = 5;
+		const unordered_map<string, double> plaintext_features = { { "zn", zn_value }, { "indus", indus_value } };
+		begin = chrono::high_resolution_clock::now();
+		const double plaintext_prediction = plaintext_model.predict(plaintext_features);
+		end = chrono::high_resolution_clock::now();
 
-		cout << "Enter the number of rows in the testing dataset (enter 0 if unknown)\n>> ";
-		cin >> testing_dataset_rows;
+		cout << "Plaintext model prediction [ with features \"zn\": " << zn_value << "," << "\"indus\": " << indus_value << "  ]: " << plaintext_prediction << " [took " 
+			<< chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
 
-		pair<vector<vector<double>>, vector<double>> test_dataset = iohelper.read_csv(testing_dataset_rows, ',', false);
-		Dataframe test_df(test_dataset, iohelper.get_csv_header());
+		const unordered_map<string, EncryptedNumber> encrypted_features = { { "zn", encryption_manager->encrypt(zn_value) }, { "indus", encryption_manager->encrypt(indus_value) } };
+		begin = chrono::high_resolution_clock::now();
+		const EncryptedNumber encrypted_prediction = encrypted_model.predict(encrypted_features);
+		end = chrono::high_resolution_clock::now();
 
-		cout << "Predicting the test dataset" << endl;
-		for (const string & header : df.get_feature_headers()) {
-			cout << header << "\t";
-		}
-		cout << "PREDICTION" << endl;
-		for (unsigned row = 0; row < test_df.shape().rows; row++) {
-			vector<double> row_features = df.get_row_feature_array(row);
-			for (unsigned col = 0; col < row_features.size(); col++) {
-				cout << row_features[col] << "\t";
-			}
-			cout << predictor.predict(df.get_row_feature(row)) << endl;
-		}
+		// decrypt the prediction
+		const double decrypted_prediction = decryption_manager.decrypt(encrypted_prediction);
+		cout << "Encrypted model prediction [ with features \"zn\": E(" << zn_value << ")" << "," << "\"indus\": E(" << indus_value << ") ]: " << decrypted_prediction << " [took "
+			<< chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
+
+		// 5 - DATASET DECRYPTION
+
+		cout << "\nDecrypting the dataframe" << endl;
+		begin = chrono::high_resolution_clock::now();
+		Dataframe<double> decrypted_dataframe = decryption_manager.decrypt_dataframe(encrypted_dataframe);
+		end = chrono::high_resolution_clock::now();
+		cout << "Dataframe decrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+
+		cout << "first two rows of the decrypted dataframe are displayed below." << endl;
+		print_dataframe<double>(decrypted_dataframe, 0, 2);
+		return 0;
 	}
 	catch (const LearnoranException & exc) {
-		cout << "Learnoran Exception encountered" << endl
+		cerr << "\nLearnoran exception catched - see the description below:" << endl
 			<< exc.what() << endl;
-	}
-	catch (...) {
-		cout << "Unknown exception catched!" << endl;
 		return 1;
 	}
-
-	return 0;
-}*/
+	catch (const runtime_error & exc) {
+		cerr << "\nUnknown runtime error catched - see the description below:" << endl
+			<< exc.what() << endl;
+		return 1;
+	}
+	catch (const exception & exc) {
+		cerr << "\nException catched - see the description below:" << endl
+			<< exc.what() << endl;
+		return 1;
+	}
+	catch (...) {
+		cerr << "\nUnknown exception encountered :(" << endl;
+		return 1;
+	}
+}

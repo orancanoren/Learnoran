@@ -7,7 +7,7 @@
 
 #include "encrypted_number.hpp"
 #include "dataframe.hpp"
-#include "bfv_parameters.hpp"
+#include "seal_parameters.hpp"
 
 /*
 EncryptionManager is mainly responsible for type conversion between double and EncryptedNumber;
@@ -17,7 +17,8 @@ it is intended to be used with doubles
 namespace Learnoran {
 	class EncryptionManager {
 	public:
-		EncryptionManager(BFVParameters parameters = BFVParameters(), const char * public_key_file = "") {//, const char * public_key_file = "", const char * secret_key_file = "") {
+		EncryptionManager(const char * public_key_file = "", BFVParameters parameters = BFVParameters(), FractionalEncoderParameters encoder_params = FractionalEncoderParameters()) 
+			: integer_coeff_count(encoder_params.integer_coeff_count), fraction_coeff_count(encoder_params.fraction_coeff_count) {//, const char * public_key_file = "", const char * secret_key_file = "") {
 			/*
 			If no public key file is given, EncryptionManager generates public and secret keys using SEAL
 			Otherwise if only public key is given, secret key is not generated.
@@ -31,7 +32,7 @@ namespace Learnoran {
 
 			context = seal::SEALContext::Create(encryption_parameters);
 
-			encoder = std::make_shared<seal::FractionalEncoder>(encryption_parameters.plain_modulus(), parameters.polynomial_modulus_degree, 1024, 1024);
+			encoder = std::make_shared<seal::FractionalEncoder>(encryption_parameters.plain_modulus(), parameters.polynomial_modulus_degree, integer_coeff_count, fraction_coeff_count);
 
 			seal::KeyGenerator keygen(context);
 			/* ======== COMMENTED OUT BECAUSE OF ISSUES WITH io_seal ==========
@@ -124,6 +125,9 @@ private:
 		std::shared_ptr<seal::SEALContext> context;
 		std::shared_ptr<seal::Evaluator> evaluator;
 		std::shared_ptr<seal::FractionalEncoder> encoder;
+		
+		const std::size_t & integer_coeff_count;
+		const std::size_t & fraction_coeff_count;
 	};
 }
 

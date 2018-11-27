@@ -11,6 +11,7 @@
 
 #include "lo_exception.hpp"
 #include "encrypted_number.hpp"
+#include "decryption_manager.hpp"
 
 namespace Learnoran {
 	template <typename T>
@@ -84,20 +85,61 @@ namespace Learnoran {
 			return find_result->second.coefficient;
 		}
 
-		//double operator()(const std::initializer_list<std::pair<std::string, T>> list) {
-		//	std::unordered_map<std::string, double> params;
-		//	for (const std::pair<std::string, double> param : list) {
-		//		params.insert(param);
-		//	}
-
-		//	return this->operator()(params);
-		//}
-
 		// below function is template-specialized for EncryptedNumber type
-		T operator()(const std::unordered_map<std::string, T> & evaluation_parameters, EncryptedNumber encrypted_zero) const;
+		EncryptedNumber operator()(const std::unordered_map<std::string, T> & evaluation_parameters, const EncryptedNumber & encrypted_zero, DecryptionManager * dec_manager = nullptr) const {
+			// Args:
+			// - evaluation_parameters: a std::vector of pairs for which each pair is of the form <value, variable symbol>
+			// Returns:
+			//   the polynomial evaluated at given parameters
+			// Throws:
+			// - MissingParametersException: if there exists a missing value for any variable symbol
+
+			if (!check_evaluation_parameters(evaluation_parameters)) {
+				throw MissingParametersException();
+			}
+
+			EncryptedNumber result = encrypted_zero;
+			double mid_result_debug = dec_manager->decrypt(result);
+			for (std::unordered_map<std::string, PolynomialTerm<EncryptedNumber>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
+				const EncryptedNumber & variable_value = evaluation_parameters.find(term->first)->second;
+				result += term->second.coefficient * pow(variable_value, term->second.exponent);
+				mid_result_debug = dec_manager->decrypt(result);
+			}
+
+			// add the constant term
+			if (this->constant_term_symbol != "") {
+				const EncryptedNumber & constant_term = this->constant_term.second.coefficient;
+				result += constant_term;
+			}
+			return result;
+		}
 
 		// below function is template-specilaized for double type
-		T operator()(const std::unordered_map<std::string, T> & evaluation_parameters) const;
+		double operator()(const std::unordered_map<std::string, T> & evaluation_parameters) const {
+			// Args:
+			// - evaluation_parameters: a std::vector of pairs for which each pair is of the form <value, variable symbol>
+			// Returns:
+			//   the polynomial evaluated at given parameters
+			// Throws:
+			// - MissingParametersException: if there exists a missing value for any variable symbol
+
+			if (!check_evaluation_parameters(evaluation_parameters)) {
+				throw MissingParametersException();
+			}
+
+			double result = 0.0;
+			for (std::unordered_map<std::string, PolynomialTerm<double>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
+				const double & variable_value = evaluation_parameters.find(term->first)->second;
+				result += std::pow(variable_value, term->second.exponent) * term->second.coefficient;
+			}
+
+			// add the constant term
+			if (this->constant_term_symbol != "") {
+				const double & constant_term = this->constant_term.second.coefficient;
+				result += constant_term;
+			}
+			return result;
+		}
 
 		friend std::ostream & operator<<(std::ostream &, const Polynomial &);
 
@@ -148,62 +190,6 @@ namespace Learnoran {
 		typename std::unordered_map<std::string, PolynomialTerm<T>> terms;
 		typename std::pair<std::string, PolynomialTerm<T>> constant_term;
 	};
-
-	// template specialization for EncryptedNumber type
-	template <>
-	EncryptedNumber Polynomial<EncryptedNumber>::operator()(const std::unordered_map<std::string, EncryptedNumber> & evaluation_parameters, EncryptedNumber encrypted_zero) const {
-		// Args:
-		// - evaluation_parameters: a std::vector of pairs for which each pair is of the form <value, variable symbol>
-		// Returns:
-		//   the polynomial evaluated at given parameters
-		// Throws:
-		// - MissingParametersException: if there exists a missing value for any variable symbol
-
-		if (!check_evaluation_parameters(evaluation_parameters)) {
-			throw MissingParametersException();
-		}
-
-		EncryptedNumber result = encrypted_zero;
-		for (std::unordered_map<std::string, PolynomialTerm<EncryptedNumber>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
-			const EncryptedNumber & variable_value = EncryptedNumber(evaluation_parameters.find(term->first)->second);
-			result += variable_value * term->second.coefficient;
-		}
-
-		// add the constant term
-		if (this->constant_term_symbol != "") {
-			const EncryptedNumber & constant_term = this->constant_term.second.coefficient;
-			result += constant_term;
-		}
-		return result;
-	}
-
-	// template specialization for double type
-	template <>
-	double Polynomial<double>::operator()(const std::unordered_map<std::string, double> & evaluation_parameters) const {
-		// Args:
-		// - evaluation_parameters: a std::vector of pairs for which each pair is of the form <value, variable symbol>
-		// Returns:
-		//   the polynomial evaluated at given parameters
-		// Throws:
-		// - MissingParametersException: if there exists a missing value for any variable symbol
-
-		if (!check_evaluation_parameters(evaluation_parameters)) {
-			throw MissingParametersException();
-		}
-
-		double result = 0.0;
-		for (std::unordered_map<std::string, PolynomialTerm<double>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
-			const double & variable_value = evaluation_parameters.find(term->first)->second;
-			result += variable_value * term->second.coefficient;
-		}
-
-		// add the constant term
-		if (this->constant_term_symbol != "") {
-			const double & constant_term = this->constant_term.second.coefficient;
-			result += constant_term;
-		}
-		return result;
-	}
 
 	template <typename T>
 	std::ostream & operator<<(std::ostream & os, const Polynomial<double> & polynomial) {

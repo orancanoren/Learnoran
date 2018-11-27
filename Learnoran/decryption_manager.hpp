@@ -4,7 +4,7 @@
 #include <seal/seal.h>
 #include <memory>
 
-#include "bfv_parameters.hpp"
+#include "seal_parameters.hpp"
 #include "encrypted_number.hpp"
 #include "io_helper.hpp"
 #include "dataframe.hpp"
@@ -12,7 +12,8 @@
 namespace Learnoran {
 	class DecryptionManager {
 	public:
-		DecryptionManager(const char * secret_key_file, const BFVParameters & parameters = BFVParameters()) {
+		DecryptionManager(const char * secret_key_file, const BFVParameters & parameters = BFVParameters(), const FractionalEncoderParameters & encoder_params = FractionalEncoderParameters()) 
+			: integer_coeff_count(encoder_params.integer_coeff_count), fractional_coeff_count(encoder_params.fraction_coeff_count) {
 			initialize_manager(parameters);
 			
 			IOhelper io_helper;
@@ -22,7 +23,8 @@ namespace Learnoran {
 			decryptor = new seal::Decryptor(context, secret_key);
 		}
 
-		DecryptionManager(seal::SecretKey secret_key, const BFVParameters & parameters = BFVParameters()) {
+		DecryptionManager(seal::SecretKey secret_key, const BFVParameters & parameters = BFVParameters(), const FractionalEncoderParameters & encoder_params = FractionalEncoderParameters()) 
+			: integer_coeff_count(encoder_params.integer_coeff_count), fractional_coeff_count(encoder_params.fraction_coeff_count) {
 			initialize_manager(parameters);
 
 			decryptor = new seal::Decryptor(context, secret_key);
@@ -68,11 +70,14 @@ namespace Learnoran {
 			encryption_parameters.set_plain_modulus(parameters.plain_modulus);
 
 			context = seal::SEALContext::Create(encryption_parameters);
-			encoder = std::make_shared<seal::FractionalEncoder>(encryption_parameters.plain_modulus(), parameters.polynomial_modulus_degree, 1024, 1024);
+			encoder = std::make_shared<seal::FractionalEncoder>(encryption_parameters.plain_modulus(), parameters.polynomial_modulus_degree, integer_coeff_count, fractional_coeff_count);
 		}
 
 		std::shared_ptr<seal::SEALContext> context;
 		std::shared_ptr<seal::FractionalEncoder> encoder;
+
+		const std::size_t & integer_coeff_count;
+		const std::size_t & fractional_coeff_count;
 
 		seal::Decryptor * decryptor;
 	};
