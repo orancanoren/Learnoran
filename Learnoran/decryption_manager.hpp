@@ -62,6 +62,10 @@ namespace Learnoran {
 			Dataframe<double> decrypted_df(decrypted_features, decrypted_labels, df.get_headers());
 			return decrypted_df;
 		}
+	
+		int get_noise_budget_bits(const EncryptedNumber & ciphertext) const {
+			return decryptor->invariant_noise_budget(ciphertext.ciphertext);
+		}
 	private:
 		void initialize_manager(const BFVParameters & parameters) {
 			seal::EncryptionParameters encryption_parameters(seal::scheme_type::BFV);

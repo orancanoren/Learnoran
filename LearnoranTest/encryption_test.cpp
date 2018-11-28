@@ -98,10 +98,9 @@ namespace EncryptionTest
 
 			EncryptedNumber ciphertext = enc_manager.encrypt(value);
 			EncryptedNumber accumulation_variable = enc_manager.encrypt(1.0);
-			
-			accumulation_variable = accumulation_variable * ciphertext;
-			accumulation_variable = accumulation_variable * ciphertext;
 
+			accumulation_variable = accumulation_variable * ciphertext;
+			accumulation_variable = accumulation_variable * ciphertext;
 			const double decrypted = dec_manager.decrypt(accumulation_variable);
 
 			Assert::AreEqual(std::pow(value, 2), decrypted, L"Multiple multiplication failed", LINE_INFO());
@@ -135,11 +134,11 @@ namespace EncryptionTest
 
 			EncryptedNumber ciphertext1 = enc_manager.encrypt(value1);
 			EncryptedNumber ciphertext2 = enc_manager.encrypt(value2);
-			
+
 			// ciphertext1 = (ciphertext1 * ciphertext2^2)^2
 			ciphertext1 *= ciphertext2;
 			ciphertext1 *= ciphertext2;
-			//ciphertext1 *= ciphertext1;
+			ciphertext1 *= ciphertext1;
 
 			const double decrypted = dec_manager.decrypt(ciphertext1);
 
@@ -242,7 +241,7 @@ namespace EncryptionTest
 			EncryptionManager enc_manager;
 			DecryptionManager dec_manager(enc_manager.get_secret_key());
 
-			const double base = 2.37;
+			const double base = 2;
 			const unsigned exponent = 4;
 
 			EncryptedNumber ciphertext = enc_manager.encrypt(base);
