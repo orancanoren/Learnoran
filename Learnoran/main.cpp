@@ -15,6 +15,8 @@
 #include "encryption_manager.hpp"
 #include "decryption_manager.hpp"
 
+#define TRAIN_PLAIN_PREDICT_ENCRYPTED
+
 using namespace std;
 using namespace Learnoran;
 
@@ -39,6 +41,45 @@ void print_dataframe(Dataframe<T> & df, const unsigned begin_index, const unsign
 	}
 }
 
+void encrypt_dataframe(Dataframe<double> & df, shared_ptr<EncryptionManager> encryption_manager) {
+	const DataframeShape shape = df.shape();
+
+	cout << "Encrypting the dataframe [" << shape.rows << " rows and " << shape.columns << " columns]" << endl;
+	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now(), end;
+	Dataframe<EncryptedNumber> encrypted_dataframe = encryption_manager->encrypt_dataframe(df);
+	end = chrono::high_resolution_clock::now();
+	cout << "Dataframe encrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+}
+
+template <typename T>
+void train_model(Predictor & predictor, const Dataframe<T> & df) {
+	const double learning_rate = 0.00001;
+	const unsigned short epochs = 100;
+
+	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+	predictor.fit(df, epochs, learning_rate);
+	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+	cout << "Training done [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
+}
+
+void test_plain_model(const Predictor & predictor, const unordered_map<string, double> & features) {
+	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+	const double prediction = predictor.predict(features);
+	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+
+	cout << "Model prediction: " << prediction << " [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
+}
+
+void test_encrypted_model(const Predictor & predictor, const unordered_map<string, EncryptedNumber> & features, const DecryptionManager & dec_manager) {
+	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+	const EncryptedNumber prediction = predictor.predict(features);
+	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+
+	const double plain_prediction = dec_manager.decrypt(prediction);
+
+	cout << "Model prediction: " << plain_prediction << " [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
+}
+
 int main() {
 	try {
 		// 1 - READ DATASET
@@ -56,71 +97,67 @@ int main() {
 		Dataframe<double> df(dataset, iohelper.get_csv_header());
 
 		// 2 - DATASET ENCRYPTION
-
 		shared_ptr<EncryptionManager> encryption_manager = make_shared<EncryptionManager>();
 		DecryptionManager decryption_manager(encryption_manager->get_secret_key());
 
-		const DataframeShape shape = df.shape();
-
-		cout << "Encrypting the dataframe [" << shape.rows << " rows and " << shape.columns << " columns]" << endl;
-		chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now(), end;
-		Dataframe<EncryptedNumber> encrypted_dataframe = encryption_manager->encrypt_dataframe(df);
-		end = chrono::high_resolution_clock::now();
-		cout << "Dataframe encrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+#ifdef TRAIN_ENCRYPTED
+		encrypt_dataframe(df, encryption_manager);
+#endif
 
 		// 3 - MODEL TRAINING
-		const double learning_rate = 0.00001;
-		const unsigned short epochs = 2;
+		LinearModel linear_model;
+
 		cout << "\n--- Initiating training benchmarks ---\n" << endl
-			<< "1. Training a plaintext model\n" << endl;
+			 << "1. Training a plaintext model\n" << endl;
+		train_model(linear_model, df);
 
-		LinearModel plaintext_model;
-		begin = chrono::high_resolution_clock::now();
-		plaintext_model.fit(df, epochs, learning_rate);
-		end = chrono::high_resolution_clock::now();
-		cout << "Plaintext model training done [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl
-			<< "\n2. Training an encrypted model\n" << endl;
+#ifdef TRAIN_ENCRYPTED
+		LinearModel encrypted_linear_model(encryption_manager);
 
-		LinearModel encrypted_model(encryption_manager);
-		begin = chrono::high_resolution_clock::now();
-		encrypted_model.fit(encrypted_dataframe, epochs, learning_rate);
-		end = chrono::high_resolution_clock::now();
-		cout << "\nEncrypted model training done [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
+		cout << "\n2. Training an encrypted model\n" << endl;
+		train_model(encrypted_linear_model, df);
+#endif
 
 		// 4 - MODEL ACCURACY ASSESSMENT
 		cout << "\n--- Initiating model accuracy assessment ---\n" << endl
 			<< "1. Plaintext model predictions" << endl;
 		
-		const double zn_value = -2.2;
-		const double indus_value = 5;
-		const unordered_map<string, double> plaintext_features = { { "zn", zn_value }, { "indus", indus_value } };
-		begin = chrono::high_resolution_clock::now();
-		const double plaintext_prediction = plaintext_model.predict(plaintext_features);
-		end = chrono::high_resolution_clock::now();
+		const double id = 1;
+		const double crim = 0.00632;
+		const double zn = 18;
+		const double indus = 2.31;
+		const double chas = 0;
+		const double nox = 0.538;
+		const double rm = 6.575;
+		const double age = 65.2;
+		const double dis = 4.09;
+		const double rad = 1;
+		const double tax = 296;
+		const double ptratio = 15.3;
+		const double black = 396.9;
+		const double lstat = 4.98;
 
-		cout << "Plaintext model prediction [ with features \"zn\": " << zn_value << "," << "\"indus\": " << indus_value << "  ]: " << plaintext_prediction << " [took " 
-			<< chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
+		const unordered_map<string, double> plaintext_features = { { "zn", zn }, { "indus", indus },
+		{"chas", chas}, {"nox", nox}, {"rm", rm}, {"age", age}, {"dis", dis}, {"rad", rad}, {"tax", tax},
+		{"ptratio", ptratio}, {"black", black}, {"lstat", lstat}, {"ID", id}, {"crim", crim} };
+		
+		const unordered_map<string, EncryptedNumber> encrypted_features = { { "zn", encryption_manager->encrypt(zn) }, { "indus", encryption_manager->encrypt(indus) },
+		{"chas", encryption_manager->encrypt(chas)}, {"nox", encryption_manager->encrypt(nox)}, {"rm",encryption_manager->encrypt(rm)},
+		{"age", encryption_manager->encrypt(age)}, {"dis", encryption_manager->encrypt(dis)}, {"rad", encryption_manager->encrypt(rad)}, {"tax", encryption_manager->encrypt(tax)},
+		{"ptratio", encryption_manager->encrypt(ptratio)}, {"black", encryption_manager->encrypt(black)}, {"lstat", encryption_manager->encrypt(lstat)},
+		{"ID", encryption_manager->encrypt(id)}, {"crim", encryption_manager->encrypt(crim)} };
+		
+		cout << "Performing prediction on the plaintext model" << endl;
+		test_plain_model(linear_model, plaintext_features);
 
-		const unordered_map<string, EncryptedNumber> encrypted_features = { { "zn", encryption_manager->encrypt(zn_value) }, { "indus", encryption_manager->encrypt(indus_value) } };
-		begin = chrono::high_resolution_clock::now();
-		const EncryptedNumber encrypted_prediction = encrypted_model.predict(encrypted_features);
-		end = chrono::high_resolution_clock::now();
-
-		// decrypt the prediction
-		const double decrypted_prediction = decryption_manager.decrypt(encrypted_prediction);
-		cout << "Encrypted model prediction [ with features \"zn\": E(" << zn_value << ")" << "," << "\"indus\": E(" << indus_value << ") ]: " << decrypted_prediction << " [took "
-			<< chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
-
-		// 5 - DATASET DECRYPTION
-
-		cout << "\nDecrypting the dataframe" << endl;
-		begin = chrono::high_resolution_clock::now();
-		Dataframe<double> decrypted_dataframe = decryption_manager.decrypt_dataframe(encrypted_dataframe);
-		end = chrono::high_resolution_clock::now();
-		cout << "Dataframe decrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
-
-		cout << "first two rows of the decrypted dataframe are displayed below." << endl;
-		print_dataframe<double>(decrypted_dataframe, 0, 2);
+#ifdef TRAIN_PLAIN_PREDICT_ENCRYPTED
+		linear_model.encrypt_model(encryption_manager);
+		cout << "\nPerforming prediction on the encrypted model [training done on plaintexts]" << endl;
+		test_encrypted_model(linear_model, encrypted_features, decryption_manager);
+#elif TRAIN_ENCRYPTED
+		cout << "\nPerforming prediction on the encrypted model [training done on ciphertexts]" << endl;
+		test_encrypted_model(encrypted_model, encrypted_features, decryption_manager);
+#endif
 		return 0;
 	}
 	catch (const LearnoranException & exc) {

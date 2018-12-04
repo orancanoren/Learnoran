@@ -85,8 +85,8 @@ namespace Learnoran {
 			return find_result->second.coefficient;
 		}
 
-		// below function is template-specialized for EncryptedNumber type
-		EncryptedNumber operator()(const std::unordered_map<std::string, T> & evaluation_parameters, const EncryptedNumber & encrypted_zero, DecryptionManager * dec_manager = nullptr) const {
+		// below function is template-specialized for EncryptedNumber type - DEBUG: DecryptionManager parameter added, delete afterwards
+		EncryptedNumber operator()(const std::unordered_map<std::string, T> & evaluation_parameters, const EncryptedNumber & encrypted_zero, DecryptionManager * dec_man = nullptr) const {
 			// Args:
 			// - evaluation_parameters: a std::vector of pairs for which each pair is of the form <value, variable symbol>
 			// Returns:
@@ -99,11 +99,25 @@ namespace Learnoran {
 			}
 
 			EncryptedNumber result = encrypted_zero;
-			double mid_result_debug = dec_manager->decrypt(result);
+
+			int noise_budget = 0;
+			int mid_noise_budget = 0;
+			if (dec_man != nullptr) {
+				noise_budget = dec_man->get_noise_budget_bits(result);
+			}
+
 			for (std::unordered_map<std::string, PolynomialTerm<EncryptedNumber>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
 				const EncryptedNumber & variable_value = evaluation_parameters.find(term->first)->second;
-				result += term->second.coefficient * pow(variable_value, term->second.exponent);
-				mid_result_debug = dec_manager->decrypt(result);
+				const EncryptedNumber power = pow(variable_value, term->second.exponent);
+				if (dec_man != nullptr) {
+					mid_noise_budget = dec_man->get_noise_budget_bits(power);
+					mid_noise_budget = dec_man->get_noise_budget_bits(term->second.coefficient);
+				}
+				result += term->second.coefficient * power; //pow(variable_value, term->second.exponent);
+				
+				if (dec_man != nullptr) {
+					noise_budget = dec_man->get_noise_budget_bits(result);
+				}
 			}
 
 			// add the constant term

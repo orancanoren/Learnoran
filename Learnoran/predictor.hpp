@@ -18,7 +18,7 @@ namespace Learnoran {
 		// Predictor::predict -> performs prediction for the supplied feature row and returns the result
 		virtual double predict(const std::unordered_map<std::string, double> & features) const = 0;
 
-		virtual EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features) const = 0;
+		virtual EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features, DecryptionManager * dec_manager = nullptr) const = 0;
 
 		// Predictor::compute_mean_square_error -> computes the mean square error of the model for the supplied dataframe
 		virtual EncryptedNumber compute_mean_square_error(const Dataframe<EncryptedNumber> & dataframe) const = 0;

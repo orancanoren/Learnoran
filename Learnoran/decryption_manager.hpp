@@ -30,14 +30,14 @@ namespace Learnoran {
 			decryptor = new seal::Decryptor(context, secret_key);
 		}
 	
-		double decrypt(const EncryptedNumber & ciphertext) {
+		double decrypt(const EncryptedNumber & ciphertext) const {
 			seal::Plaintext plaintext;
 			decryptor->decrypt(ciphertext.ciphertext, plaintext);
 
 			return encoder->decode(plaintext);
 		}
 	
-		Dataframe<double> decrypt_dataframe(Dataframe<EncryptedNumber> & df) {
+		Dataframe<double> decrypt_dataframe(Dataframe<EncryptedNumber> & df) const {
 			const DataframeShape shape = df.shape();
 
 			std::vector<std::vector<double>> decrypted_features(shape.rows);

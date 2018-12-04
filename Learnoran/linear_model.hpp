@@ -1,7 +1,7 @@
 #ifndef _LINEAR_MODEL_HPP
 #define _LINEAR_MODEL_HPP
 
-#define _SEQUENTIAL
+//#define _SEQUENTIAL
 
 #include <random>
 #include <string>
@@ -22,6 +22,21 @@ namespace Learnoran {
 	class LinearModel : public Predictor {
 	public:
 		LinearModel(std::shared_ptr<EncryptionManager> encryption_manager = nullptr) : encryption_manager(encryption_manager) { }
+
+		void encrypt_model(std::shared_ptr<EncryptionManager> encryption_manager) {
+			// encrypts the plaintext model to obtain an encrypted model
+			this->encryption_manager = encryption_manager;
+
+			std::unordered_map<std::string, PolynomialTerm<double>> plain_terms = plaintext_model.get_terms();
+			std::pair<std::string, PolynomialTerm<double>> plain_const_term = plaintext_model.get_constant_term();
+
+			for (std::unordered_map<std::string, PolynomialTerm<double>>::const_iterator term = plain_terms.cbegin(); term != plain_terms.cend(); term++) {
+				encrypted_model.add_term(encryption_manager->encrypt(term->second.coefficient), term->first, term->second.exponent);
+			}
+			encrypted_model.set_constant_term(encryption_manager->encrypt(plain_const_term.second.coefficient), plain_const_term.first);
+
+			encrypted_zero = encryption_manager->encrypt(0.0);
+		}
 
 		// MARK: FIT (i.e. training)
 
@@ -48,12 +63,12 @@ namespace Learnoran {
 
 		// MARK: PREDICTION
 
-		double predict(const std::unordered_map<std::string, double> & features) const override  {
+		double predict(const std::unordered_map<std::string, double> & features) const /*override*/  {
 			return plaintext_model(features);
 		}
 
-		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features) const override {
-			return encrypted_model(features, encrypted_zero);
+		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features, DecryptionManager * dec_man = nullptr) const override {
+			return encrypted_model(features, encrypted_zero, dec_man);
 		}
 
 		double predict(const std::initializer_list<std::pair<std::string, double>> features) const    {
@@ -146,7 +161,7 @@ namespace Learnoran {
 			DataframeShape shape = dataframe.shape();
 
 			// go over each parameter and optimize them one by one
-			for (std::pair<std::string, PolynomialTerm<EncryptedNumber>> term : encrypted_model.get_terms()) {
+			for (std::pair<std::string, PolynomialTerm<double>> term : plaintext_model.get_terms()) {
 				const std::string current_parameter = term.first;
 
 				double derivative_cost_function = 0.0;
@@ -184,8 +199,7 @@ namespace Learnoran {
 				const double & parameter_new_value = current_parameter_value - (derivative_cost_function * learning_rate);
 
 				plaintext_model[current_parameter] = parameter_new_value;
-				std::cout << "Model parameter " << current_parameter << " updated" << std::endl;
-		}
+			}
 		}
 
 		void mse_batch_gd(const Dataframe<EncryptedNumber> & dataframe, const double learning_rate) {
