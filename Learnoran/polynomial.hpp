@@ -1,6 +1,8 @@
 #ifndef _POLYNOMIAL_HPP
 #define _POLYNOMIAL_HPP
 
+#define _DEBUG
+
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -86,7 +88,7 @@ namespace Learnoran {
 		}
 
 		// below function is template-specialized for EncryptedNumber type - DEBUG: DecryptionManager parameter added, delete afterwards
-		EncryptedNumber operator()(const std::unordered_map<std::string, T> & evaluation_parameters, const EncryptedNumber & encrypted_zero, DecryptionManager * dec_man = nullptr) const {
+		EncryptedNumber operator()(const std::unordered_map<std::string, T> & evaluation_parameters, const EncryptedNumber & encrypted_zero, const DecryptionManager * dec_man = nullptr) const {
 			// Args:
 			// - evaluation_parameters: a std::vector of pairs for which each pair is of the form <value, variable symbol>
 			// Returns:
@@ -106,6 +108,16 @@ namespace Learnoran {
 				noise_budget = dec_man->get_noise_budget_bits(result);
 			}
 
+#ifdef _DEBUG
+			bool decryption_manager_valid = dec_man != nullptr;
+			if (!decryption_manager_valid) {
+				std::cout << "Decryption interface not supplied to polynomial evaluation operator\nnoise budget calculations will not be supported!\n";
+			}
+			else {
+				std::cout << "initial noise budget for result ciphertext: " << noise_budget << std::endl;
+			}
+#endif
+
 			for (std::unordered_map<std::string, PolynomialTerm<EncryptedNumber>>::const_iterator term = terms.cbegin(); term != terms.cend(); term++) {
 				const EncryptedNumber & variable_value = evaluation_parameters.find(term->first)->second;
 				const EncryptedNumber power = pow(variable_value, term->second.exponent);
@@ -118,6 +130,11 @@ namespace Learnoran {
 				if (dec_man != nullptr) {
 					noise_budget = dec_man->get_noise_budget_bits(result);
 				}
+#ifdef _DEBUG
+				if (decryption_manager_valid) {
+					std::cout << "mid noise budget for result ciphertext: " << noise_budget << std::endl;
+				}
+#endif
 			}
 
 			// add the constant term

@@ -15,10 +15,19 @@
 #include "encryption_manager.hpp"
 #include "decryption_manager.hpp"
 
-#define TRAIN_PLAIN_PREDICT_ENCRYPTED
+#define TRAIN_ENCRYPTED
+//#define TRAIN_PLAIN_PREDICT_ENCRYPTED
 
 using namespace std;
 using namespace Learnoran;
+
+int random_number() {
+	static random_device rd;
+	static mt19937 mt(rd());
+	static uniform_int_distribution<int> dist(1, 1000);
+
+	return dist(mt);
+}
 
 template <typename T>
 void print_dataframe(Dataframe<T> & df, const unsigned begin_index, const unsigned end_index) {
@@ -41,21 +50,26 @@ void print_dataframe(Dataframe<T> & df, const unsigned begin_index, const unsign
 	}
 }
 
-void encrypt_dataframe(Dataframe<double> & df, shared_ptr<EncryptionManager> encryption_manager) {
+Dataframe<EncryptedNumber> * encrypt_dataframe(const Dataframe<double> & df, shared_ptr<EncryptionManager> encryption_manager) {
 	const DataframeShape shape = df.shape();
 
 	cout << "Encrypting the dataframe [" << shape.rows << " rows and " << shape.columns << " columns]" << endl;
 	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now(), end;
-	Dataframe<EncryptedNumber> encrypted_dataframe = encryption_manager->encrypt_dataframe(df);
+	Dataframe<EncryptedNumber> * encrypted_dataframe = new Dataframe<EncryptedNumber>(encryption_manager->encrypt_dataframe(df));
 	end = chrono::high_resolution_clock::now();
 	cout << "Dataframe encrypted in " << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms" << endl;
+
+	return encrypted_dataframe;
 }
 
-template <typename T>
-void train_model(Predictor & predictor, const Dataframe<T> & df) {
-	const double learning_rate = 0.00001;
-	const unsigned short epochs = 100;
+void train_encrypted_model(Predictor & predictor, const Dataframe<EncryptedNumber> & df, const DecryptionManager * dec_man = nullptr, const unsigned short epochs = 2, const double learning_rate = 0.00001) {
+	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
+	predictor.fit(df, epochs, learning_rate, dec_man);
+	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+	cout << "Training done [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
+}
 
+void train_plaintext_model(Predictor & predictor, const Dataframe<double> & df, const unsigned short epochs = 2, const double learning_rate = 0.00001) {
 	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
 	predictor.fit(df, epochs, learning_rate);
 	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
@@ -80,42 +94,77 @@ void test_encrypted_model(const Predictor & predictor, const unordered_map<strin
 	cout << "Model prediction: " << plain_prediction << " [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
 }
 
+void multiplication_benchmark() {
+	EncryptionManager enc_manager;
+	vector<EncryptedNumber> ciphertexts;
+	EncryptedNumber const_multip_operand = enc_manager.encrypt(random_number());
+
+	double average_time = 0.0;
+	unsigned benchmark_size = 1000;
+
+	// initialize ciphertexts
+	ciphertexts.resize(benchmark_size);
+	for (unsigned i = 0; i < benchmark_size; i++) {
+		ciphertexts[i] = enc_manager.encrypt(random_number());
+	}
+
+	// perform the benchmark
+	chrono::high_resolution_clock::time_point begin, end;
+	for (unsigned i = 0; i < benchmark_size; i++) {
+		begin = chrono::high_resolution_clock::now();
+		EncryptedNumber result = ciphertexts[i] * const_multip_operand;
+		end = chrono::high_resolution_clock::now();
+		average_time += chrono::duration_cast<chrono::milliseconds>(end - begin).count() / static_cast<double>(benchmark_size);
+	}
+
+	cout << "Average multiplication time for " << benchmark_size << " multiplications: " << average_time << " ms" << endl;
+}
+
+Dataframe<double> read_dataset(const std::string & csv_file, unsigned num_rows = 0) {
+	std::pair < std::vector< std::vector<double>>, std::vector<double>> dataset;
+	IOhelper reader;
+	reader.open_file(csv_file.c_str());
+
+	dataset = reader.read_csv(num_rows);
+
+	Dataframe<double> dataframe(dataset, reader.get_csv_header());
+	return dataframe;
+}
+
 int main() {
 	try {
 		// 1 - READ DATASET
-		string training_dataset_file;
-		IOhelper iohelper;
-		unsigned training_dataset_rows = 0;
+		unsigned dataset_rows = 0;
+		std::string csv_file;
+
 		cout << "Enter the directory for the training dataset CSV\n>> ";
-		cin >> training_dataset_file;
-		iohelper.open_file(training_dataset_file.c_str());
+		cin >> csv_file;
 
 		cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
-		cin >> training_dataset_rows;
+		cin >> dataset_rows;
 
-		pair<vector<vector<double>>, vector<double>> dataset = iohelper.read_csv(training_dataset_rows);
-		Dataframe<double> df(dataset, iohelper.get_csv_header());
+		Dataframe<double> df = read_dataset(csv_file, dataset_rows);
 
 		// 2 - DATASET ENCRYPTION
 		shared_ptr<EncryptionManager> encryption_manager = make_shared<EncryptionManager>();
 		DecryptionManager decryption_manager(encryption_manager->get_secret_key());
 
 #ifdef TRAIN_ENCRYPTED
-		encrypt_dataframe(df, encryption_manager);
+		Dataframe<EncryptedNumber> * encrypted_df = encrypt_dataframe(df, encryption_manager);
 #endif
 
 		// 3 - MODEL TRAINING
-		LinearModel linear_model;
+		LinearModel plaintext_linear_model;
 
 		cout << "\n--- Initiating training benchmarks ---\n" << endl
 			 << "1. Training a plaintext model\n" << endl;
-		train_model(linear_model, df);
+		train_plaintext_model(plaintext_linear_model, df);
 
 #ifdef TRAIN_ENCRYPTED
 		LinearModel encrypted_linear_model(encryption_manager);
 
 		cout << "\n2. Training an encrypted model\n" << endl;
-		train_model(encrypted_linear_model, df);
+		train_encrypted_model(encrypted_linear_model, *encrypted_df);//, &decryption_manager);
 #endif
 
 		// 4 - MODEL ACCURACY ASSESSMENT
@@ -127,7 +176,7 @@ int main() {
 		const double zn = 18;
 		const double indus = 2.31;
 		const double chas = 0;
-		const double nox = 0.538;
+		const double nox = 2.538;
 		const double rm = 6.575;
 		const double age = 65.2;
 		const double dis = 4.09;
@@ -148,15 +197,15 @@ int main() {
 		{"ID", encryption_manager->encrypt(id)}, {"crim", encryption_manager->encrypt(crim)} };
 		
 		cout << "Performing prediction on the plaintext model" << endl;
-		test_plain_model(linear_model, plaintext_features);
+		test_plain_model(plaintext_linear_model, plaintext_features);
 
 #ifdef TRAIN_PLAIN_PREDICT_ENCRYPTED
 		linear_model.encrypt_model(encryption_manager);
 		cout << "\nPerforming prediction on the encrypted model [training done on plaintexts]" << endl;
 		test_encrypted_model(linear_model, encrypted_features, decryption_manager);
-#elif TRAIN_ENCRYPTED
+#elif defined(TRAIN_ENCRYPTED)
 		cout << "\nPerforming prediction on the encrypted model [training done on ciphertexts]" << endl;
-		test_encrypted_model(encrypted_model, encrypted_features, decryption_manager);
+		test_encrypted_model(encrypted_linear_model, encrypted_features, decryption_manager);
 #endif
 		return 0;
 	}

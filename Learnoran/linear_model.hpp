@@ -52,11 +52,11 @@ namespace Learnoran {
 			std::cout << "final loss: " << compute_mean_square_error(dataframe) << std::endl;
 		}
 
-		void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate) override {
+		void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate, const DecryptionManager * dec_man = nullptr) override {
 			initialize_encrypted_model(dataframe);
 
 			for (unsigned short epoch = 0; epoch < epochs; epoch++) {
-				mse_batch_gd(dataframe, learning_rate);
+				mse_batch_gd(dataframe, learning_rate, dec_man);
 				std::cout << "epoch " << epoch + 1 << "/" << epochs << " completed" << std::endl;
 			}
 		}
@@ -202,7 +202,7 @@ namespace Learnoran {
 			}
 		}
 
-		void mse_batch_gd(const Dataframe<EncryptedNumber> & dataframe, const double learning_rate) {
+		void mse_batch_gd(const Dataframe<EncryptedNumber> & dataframe, const double learning_rate, const DecryptionManager * dec_man = nullptr) {
 			// applies gradient descent to MSE cost function
 
 			DataframeShape shape = dataframe.shape();
@@ -221,7 +221,7 @@ namespace Learnoran {
 					const EncryptedNumber & real_value = dataframe.get_row_label(row);
 					const std::unordered_map<std::string, EncryptedNumber> & row_features = dataframe.get_row_feature(row);
 
-					const EncryptedNumber model_prediction = encrypted_model(row_features, encryption_manager->encrypt(0.0));
+					const EncryptedNumber model_prediction = encrypted_model(row_features, encryption_manager->encrypt(0.0), dec_man);
 					const EncryptedNumber model_error = model_prediction - real_value;
 
 					EncryptedNumber inner_derivative = encryption_manager->encrypt(1.0);

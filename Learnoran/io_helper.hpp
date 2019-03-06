@@ -97,7 +97,7 @@ namespace Learnoran {
 			}
 
 			seal::SecretKey secret_key;
-			secret_key.load(stream);
+			secret_key.unsafe_load(stream);
 
 			return secret_key;
 		}

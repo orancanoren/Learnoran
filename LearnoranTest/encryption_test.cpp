@@ -1,10 +1,10 @@
 #include "stdafx.h"
 #include "CppUnitTest.h"
 
-#include "Learnoran/polynomial.hpp"
-#include "Learnoran/encryption_manager.hpp"
-#include "Learnoran/encrypted_number.hpp"
-#include "Learnoran/decryption_manager.hpp"
+#include "../Learnoran/polynomial.hpp"
+#include "../Learnoran/encryption_manager.hpp"
+#include "../Learnoran/encrypted_number.hpp"
+#include "../Learnoran/decryption_manager.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace Learnoran;
@@ -228,7 +228,7 @@ namespace EncryptionTest
 			const unsigned exponent = 2;
 
 			EncryptedNumber ciphertext = enc_manager.encrypt(base);
-			EncryptedNumber raised_ciphertext = pow(ciphertext, exponent);
+			EncryptedNumber raised_ciphertext = Learnoran::pow(ciphertext, exponent);
 
 			double decrypted_result = dec_manager.decrypt(raised_ciphertext);
 
@@ -245,7 +245,7 @@ namespace EncryptionTest
 			const unsigned exponent = 4;
 
 			EncryptedNumber ciphertext = enc_manager.encrypt(base);
-			EncryptedNumber raised_ciphertext = pow(ciphertext, exponent);
+			EncryptedNumber raised_ciphertext = Learnoran::pow(ciphertext, exponent);
 
 			double decrypted_result = dec_manager.decrypt(raised_ciphertext);
 
@@ -274,7 +274,7 @@ namespace EncryptionTest
 			const unsigned exponent = 4;
 
 			const EncryptedNumber ciphertext = enc_manager.encrypt(base);
-			const EncryptedNumber raised_ciphertext = pow(ciphertext, exponent);
+			const EncryptedNumber raised_ciphertext = Learnoran::pow(ciphertext, exponent);
 			const unsigned decrypted = static_cast<unsigned>(dec_manager.decrypt(raised_ciphertext));
 
 			Assert::AreEqual(static_cast<unsigned>(std::pow(base, exponent)), decrypted, L"Exponentiation test failed", LINE_INFO());

@@ -78,7 +78,7 @@ namespace Learnoran {
 			return EncryptedNumber(ciphertext, evaluator, encoder);
 		}
 
-		Dataframe<EncryptedNumber> encrypt_dataframe(Dataframe<double> & df) const {
+		Dataframe<EncryptedNumber> encrypt_dataframe(const Dataframe<double> & df) const {
 			const DataframeShape shape = df.shape();
 
 			std::vector<std::vector<EncryptedNumber>> encrypted_features(shape.rows);
