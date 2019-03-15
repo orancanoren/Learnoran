@@ -333,3 +333,4 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
+/dataset/train_no_header.csv
