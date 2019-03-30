@@ -195,34 +195,45 @@ namespace NeuralNetworkTest
 		TEST_METHOD(DotProductTest)
 		{
 			// TODO: Your test code here
-			const unsigned rows = 12;
-			const unsigned cols = 15;
+			const unsigned rows = 2;
+			const unsigned cols = 3;
 
 			std::vector<std::vector<double>> matrix(rows), matrix2(cols);
 
-			for (unsigned row = 0; row < rows; row++) {
-				matrix[row].resize(cols, 4.23);
+			for (unsigned i = 0; i < rows; i++) {
+				matrix[i].resize(cols);
+			}
+			
+			for (unsigned i = 0; i < cols; i++) {
+				matrix2[i].resize(rows);
 			}
 
-			for (unsigned row = 0; row < cols; row++) {
-				matrix2[row].resize(rows, 5.56);
-			}
+			matrix[0][0] = 2.3;
+			matrix[0][1] = 5;
+			matrix[0][2] = 6;
+			matrix[1][0] = 4;
+			matrix[1][1] = -1.7;
+			matrix[1][2] = 0;
 
-			const double product = 4.23 * 5.56;
+			matrix2[0][0] = 1;
+			matrix2[0][1] = 2;
+			matrix2[1][0] = 3;
+			matrix2[1][1] = 4;
+			matrix2[2][0] = 5;
+			matrix2[2][1] = 6;
+
+			
 
 			Matrix<double> mat1(matrix), mat2(matrix2);
-			Matrix<double> res = mat1.dot(mat2);
+			std::vector<std::vector<double>> res = mat1.dot(mat2).get_vector();
 
-			std::pair<unsigned, unsigned> product_shape = res.get_shape();
+			Assert::AreEqual(static_cast<unsigned>(res.size()), 2U, L"DOT PRODUCT SHAPE INVALID", LINE_INFO());
+			Assert::AreEqual(static_cast<unsigned>(res[0].size()), 2U, L"DOT PRODUCT SHAPE INVALID", LINE_INFO());
 
-			Assert::AreEqual(product_shape.first, 12U, L"DOT PRODUCT SHAPE INVALID", LINE_INFO());
-			Assert::AreEqual(product_shape.second, 12U, L"DOT PRODUCT SHAPE INVALID", LINE_INFO());
-
-			for (unsigned row = 0; row < row; row++) {
-				for (unsigned col = 0; col < cols; col++) {
-					Assert::AreEqual(product, res[row][col], 0.0001, L"MATRIX FUNCTION MAPPING RESULT MISMATCHING", LINE_INFO());
-				}
-			}
+			Assert::AreEqual(47.3, res[0][0], 0.001, L"Entry [0][0] invalid", LINE_INFO());
+			Assert::AreEqual(60.6, res[0][1], 0.001 ,L"Entry [0][1] invalid", LINE_INFO());
+			Assert::AreEqual(-1.1, res[1][0], 0.001, L"Entry [1][0] invalid", LINE_INFO());
+			Assert::AreEqual(1.2, res[1][1], 0.001, L"Entry [1][1] invalid", LINE_INFO());
 		}
 
 		TEST_METHOD(GetVectorTest)

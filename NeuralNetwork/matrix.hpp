@@ -7,23 +7,36 @@
 #include <sstream>
 #include <utility>
 
+struct Shape {
+	Shape(unsigned rows, unsigned cols) : rows(rows), cols(cols) { }
+
+	unsigned rows;
+	unsigned cols;
+};
+
 template <typename T>
 class Matrix {
 public:
 	// CONSTRUCTORS
 	Matrix();
-	Matrix(const unsigned height, const unsigned width);
-	Matrix(std::vector<std::vector<T>> const & matrix_array);
+	Matrix(const unsigned rows, const unsigned cols);
+	Matrix(const std::vector<std::vector<T>> & matrix_array);
 	Matrix(const Matrix && rhs); // move
 	Matrix(const Matrix & rhs); // copy
 
-	std::pair<unsigned, unsigned> get_shape() const;
+	Shape get_shape() const;
 
 	std::vector<std::vector<T>> get_vector() const;
+
+	std::vector<T> get_1d_vector() const;
+
+	std::vector<T> get_col(const unsigned col) const;
 
 	void print(std::ostream & flux) const; // pretty print the matrix
 
 	Matrix map(T(*function)(T)) const; // apply a function to every element
+
+	Matrix map(T(*function)(T, T), T param) const;
 
 	Matrix transpose() const;
 
@@ -32,6 +45,7 @@ public:
 	// GETTER AND SETTER OPERATORS
 	Matrix & operator=(Matrix const & rhs);
 	std::vector<T> & operator[](const unsigned row);
+	std::vector<T> operator[](const unsigned row) const;
 
 	// LOGIC OPERATORS
 	bool operator==(Matrix const & rhs);
@@ -44,13 +58,49 @@ public:
 
 private:
 	std::vector<std::vector<T>> matrix_array;
-	unsigned width;
-	unsigned height;
+	unsigned cols;
+	unsigned rows;
 };
 
 template <typename T>
-std::pair<unsigned, unsigned> Matrix<T>::get_shape() const {
-	return std::make_pair(height, width);
+std::vector<T> Matrix<T>::get_col(const unsigned col) const {
+	std::vector<T> column(rows);
+	
+	for (unsigned i = 0; i < rows; i++) {
+		column[i] = matrix_array[i][col];
+	}
+
+	return column;
+}
+
+template <typename T>
+std::vector<T> Matrix<T>::operator[](const unsigned row) const{
+	return matrix_array[row];
+}
+
+template <typename T>
+std::vector<T> Matrix<T>::get_1d_vector() const {
+	assert(cols == 1 || rows == 1);
+
+	unsigned output_size = (cols == 1 ? rows : cols);
+
+	std::vector<T> col_vector(output_size);
+
+	if (cols == 1) {
+		for (unsigned i = 0; i < rows; i++) {
+			col_vector[i] = matrix_array[i][0];
+		}
+	}
+	else {
+		col_vector = matrix_array[0];
+	}
+
+	return col_vector;
+}
+
+template <typename T>
+Shape Matrix<T>::get_shape() const {
+	return Shape(rows, cols);
 }
 
 template <typename T>
@@ -65,36 +115,36 @@ template <typename T>
 Matrix<T>::Matrix() { }
 
 template <typename T>
-Matrix<T>::Matrix(const unsigned height, const unsigned width) : height(height), width(width) {
-	matrix_array.resize(height);
-	for (unsigned row = 0; row < height; row++) {
-		matrix_array[row].resize(width);
+Matrix<T>::Matrix(const unsigned rows, const unsigned cols) : rows(rows), cols(cols) {
+	matrix_array.resize(rows);
+	for (unsigned row = 0; row < rows; row++) {
+		matrix_array[row].resize(cols);
 	}
 }
 
 template <typename T>
-Matrix<T>::Matrix(std::vector<std::vector<T>> const & matrix_array) : height(matrix_array.size()), width(matrix_array[0].size()) {
+Matrix<T>::Matrix(const std::vector<std::vector<T>> & matrix_array) : rows(matrix_array.size()), cols(matrix_array[0].size()) {
 	assert(matrix_array.size() != 0);
 	this->matrix_array = matrix_array;
 }
 
 template <typename T>
-Matrix<T>::Matrix(const Matrix && rhs) : height(rhs.height), width(rhs.width) {
+Matrix<T>::Matrix(const Matrix && rhs) : rows(rhs.rows), cols(rhs.cols) {
 	this->matrix_array = rhs.matrix_array;
 }
 
 template <typename T>
-Matrix<T>::Matrix(const Matrix & rhs) : height(rhs.height), width(rhs.width) {
+Matrix<T>::Matrix(const Matrix & rhs) : rows(rhs.rows), cols(rhs.cols) {
 	this->matrix_array = rhs.matrix_array;
 }
 
 // Scalar multiplication
 template <typename T>
 Matrix<T> Matrix<T>::operator*(const double scalar) {
-	Matrix result(height, width);
+	Matrix result(rows, cols);
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			result.matrix_array[row][col] = matrix_array[row][col] * scalar;
 		}
 	}
@@ -105,12 +155,12 @@ Matrix<T> Matrix<T>::operator*(const double scalar) {
 // Addition
 template <typename T>
 Matrix<T> Matrix<T>::operator+(Matrix<T> const & rhs) {
-	assert(height == rhs.height && width == rhs.width);
+	assert(rows == rhs.rows && cols == rhs.cols);
 
-	Matrix result(height, width);
+	Matrix result(rows, cols);
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			result.matrix_array[row][col] = matrix_array[row][col] + rhs.matrix_array[row][col];
 		}
 	}
@@ -121,12 +171,12 @@ Matrix<T> Matrix<T>::operator+(Matrix<T> const & rhs) {
 // Subtraction
 template <typename T>
 Matrix<T> Matrix<T>::operator-(Matrix<T> const & rhs) {
-	assert(height == rhs.height && width == rhs.width);
+	assert(rows == rhs.rows && cols == rhs.cols);
 
-	Matrix result(height, width);
+	Matrix result(rows, cols);
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			result.matrix_array[row][col] = matrix_array[row][col] - rhs.matrix_array[row][col];
 		}
 	}
@@ -137,12 +187,12 @@ Matrix<T> Matrix<T>::operator-(Matrix<T> const & rhs) {
 // Hadamard product
 template <typename T>
 Matrix<T> Matrix<T>::operator*(Matrix<T> const & rhs) {
-	assert(height == rhs.height && width == rhs.width);
+	assert(rows == rhs.rows && cols == rhs.cols);
 
-	Matrix result(height, width);
+	Matrix result(rows, cols);
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			result.matrix_array[row][col] = matrix_array[row][col] * rhs.matrix_array[row][col];
 		}
 	}
@@ -153,17 +203,17 @@ Matrix<T> Matrix<T>::operator*(Matrix<T> const & rhs) {
 // Dot product
 template <typename T>
 Matrix<T> Matrix<T>::dot(Matrix<T> const & rhs) {
-	assert(width == rhs.height);
+	assert(cols == rhs.rows);
 
-	Matrix result(height, rhs.width);
+	Matrix result(rows, rhs.cols);
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned rhs_col = 0; rhs_col < rhs.width; rhs_col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned rhs_col = 0; rhs_col < rhs.cols; rhs_col++) {
 
 			T result_element = 0.0;
 
-			for (unsigned col = 0; col < width; col++) {
-				result_element += matrix_array[row][col] * rhs.matrix_array[col][rhs_col];
+			for (unsigned i = 0; i < cols; i++) {
+				result_element += matrix_array[row][i] * rhs.matrix_array[i][rhs_col];
 			}
 
 			result[row][rhs_col] = result_element;
@@ -176,10 +226,10 @@ Matrix<T> Matrix<T>::dot(Matrix<T> const & rhs) {
 // Transpose
 template <typename T>
 Matrix<T> Matrix<T>::transpose() const {
-	Matrix result(width, height);
+	Matrix result(cols, rows);
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			result[col][row] = matrix_array[row][col];
 		}
 	}
@@ -189,8 +239,8 @@ Matrix<T> Matrix<T>::transpose() const {
 
 template <typename T>
 void Matrix<T>::print(std::ostream & flux) const {
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			flux << matrix_array[row][col] << ' ';
 		}
 		flux << '\n';
@@ -199,11 +249,24 @@ void Matrix<T>::print(std::ostream & flux) const {
 
 template <typename T>
 Matrix<T> Matrix<T>::map(T(*function)(T)) const {
-	Matrix result(height, width);
+	Matrix result(rows, cols);
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			result.matrix_array[row][col] = (*function)(matrix_array[row][col]);
+		}
+	}
+
+	return result;
+}
+
+template <typename T>
+Matrix<T> Matrix<T>::map(T(*function)(T, T), T param) const {
+	Matrix result(rows, cols);
+
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
+			result.matrix_array[row][col] = (*function)(matrix_array[row][col], param);
 		}
 	}
 
@@ -218,12 +281,12 @@ std::ostream & operator<<(std::ostream & flux, Matrix<T> const & matrix) {
 
 template <typename T>
 bool Matrix<T>::operator==(Matrix<T> const & rhs) {
-	if (height != rhs.height || width != rhs.width) {
+	if (rows != rhs.rows || cols != rhs.cols) {
 		return false;
 	}
 
-	for (unsigned row = 0; row < height; row++) {
-		for (unsigned col = 0; col < width; col++) {
+	for (unsigned row = 0; row < rows; row++) {
+		for (unsigned col = 0; col < cols; col++) {
 			if (matrix_array[row][col] != rhs.matrix_array[row][col]) {
 				return false;
 			}
@@ -236,8 +299,8 @@ bool Matrix<T>::operator==(Matrix<T> const & rhs) {
 template <typename T>
 Matrix<T> & Matrix<T>::operator=(const Matrix<T> & rhs) {
 	matrix_array = rhs.matrix_array;
-	height = rhs.height;
-	width = rhs.width;
+	rows = rhs.rows;
+	cols = rhs.cols;
 
 	return *this;
 }
