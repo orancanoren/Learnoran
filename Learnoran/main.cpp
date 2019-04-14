@@ -164,7 +164,7 @@ int main() {
 		LinearModel encrypted_linear_model(encryption_manager);
 
 		cout << "\n2. Training an encrypted model\n" << endl;
-		train_encrypted_model(encrypted_linear_model, *encrypted_df);//, &decryption_manager);
+		train_encrypted_model(encrypted_linear_model, *encrypted_df, &decryption_manager);
 #endif
 
 		// 4 - MODEL ACCURACY ASSESSMENT

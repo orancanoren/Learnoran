@@ -9,6 +9,9 @@
 #include <vector>
 #include <utility>
 #include <sstream>
+#include <cassert>
+#include <xutility>
+#include <cmath>
 
 #include "lo_exception.hpp"
 
@@ -31,62 +34,24 @@ namespace Learnoran {
 			return csv_header;
 		}
 
-		std::pair<std::vector<std::vector<double>>, std::vector<double>> read_csv(const unsigned row_count = UNKNOWN, const char delimiter = ',', bool data_contains_labels = true) {
-			// Reads the provided CSV file and returns two vectors, one containing the features and the other containing labels
-			// Args:
-			// - row_count: number of rows in the dataset - speeds up the operation. If row_count is larger than the 
-			// actual number of rows, the dataset size is shrinked to fit to actual size
-			// - delimiter: the delimiter to seperate fields in the supplied CSV file
-			// - data_contains_labels: if set to false, it is assumed that the data set does not contains labels. Returned labels array will be empty
-			// Returns:
-			//   A std::pair consisting of features and labels respectively in the format of 2D and 1D arrays.
+		std::pair < std::pair<std::vector<std::vector<double>>, std::vector<double>>, std::pair<std::vector<std::vector<double>>, std::vector<double>> > 
+			read_csv_train_test_split(const double training_percentage, const unsigned row_count = UNKNOWN, const char delimiter = ',') {
+			assert(training_percentage <= 1.0 && training_percentage >= 0.0);
 
-			std::vector<std::vector<double>> features;
-			std::vector<double> labels;
-
-			parse_csv_header(delimiter);
-
-			const size_t column_count = csv_header.size();
-			const size_t feature_columns = data_contains_labels ? column_count - 1 : column_count;
-			if (row_count != UNKNOWN) {
-				features.resize(row_count);
-				for (unsigned short i = 0; i < features.size(); i++) {
-					features[i].resize(feature_columns);
-				}
-				if (data_contains_labels) {
-					labels.resize(row_count);
-				}
-			}
-
-			std::string line_buffer;
-			unsigned row_counter = 0;
-
-			// To avoid unnecessary branching, pick one of static and dynamic reading functions and apply it in a loop
+			double total_rows;
 			if (row_count == UNKNOWN) {
-				while (std::getline(stream, line_buffer)) {
-					std::istringstream line_stream(line_buffer);
-					dynamic_row_append(features, labels, line_stream, delimiter, data_contains_labels);
-					row_counter++;
-				}
+				total_rows = count_lines();
 			}
-			else {
-				while (std::getline(stream, line_buffer)) {
-					std::istringstream line_stream(line_buffer);
-					static_row_append(features, labels, line_stream, row_counter, delimiter, data_contains_labels);
-					row_counter++;
-				}
-				// row count might be larger than the size of actual data. To prevent future issues, dataset must be shrinked to actual size
-				features.resize(row_counter);
-				if (data_contains_labels) {
-					labels.resize(row_counter);
-				}
-			}
-			// shrink the vector capacity to its size, to reduce the memory usage.
-			//This is a good way of reducing the memory usage if there will be no more insertions to the dataset
-			features.shrink_to_fit();
-			labels.shrink_to_fit();
+			unsigned training_rows = std::ceil(total_rows * training_percentage);
+			
+			std::pair<std::vector<std::vector<double>>, std::vector<double>> train_set = read_csv_general(training_rows, delimiter);
+			std::pair<std::vector<std::vector<double>>, std::vector<double>> test_set = read_csv_general(total_rows - training_rows);
+		
+			return std::make_pair(train_set, test_set);
+		}
 
-			return std::make_pair(features, labels);
+		std::pair<std::vector<std::vector<double>>, std::vector<double>> read_csv(const unsigned row_count = UNKNOWN, const char delimiter = ',', bool data_contains_labels = true) {
+			return read_csv_general(row_count, delimiter, data_contains_labels);
 		}
 	
 		seal::SecretKey read_secret_key(const char * const filename) {
@@ -152,6 +117,69 @@ namespace Learnoran {
 
 		std::fstream stream;
 		std::vector<std::string> csv_header;
+
+	private:
+		std::pair<std::vector<std::vector<double>>, std::vector<double>> read_csv_general(const unsigned row_count = UNKNOWN, const char delimiter = ',', bool data_contains_labels = true) {
+			// Reads the provided CSV file and returns two vectors, one containing the features and the other containing labels
+			// Args:
+			// - row_count: number of rows in the dataset - speeds up the operation. If row_count is larger than the 
+			// actual number of rows, the dataset size is shrinked to fit to actual size
+			// - delimiter: the delimiter to seperate fields in the supplied CSV file
+			// - data_contains_labels: if set to false, it is assumed that the data set does not contains labels. Returned labels array will be empty
+			// Returns:
+			//   A std::pair consisting of features and labels respectively in the format of 2D and 1D arrays.
+
+			std::vector<std::vector<double>> features;
+			std::vector<double> labels;
+
+			parse_csv_header(delimiter);
+
+			const size_t column_count = csv_header.size();
+			const size_t feature_columns = data_contains_labels ? column_count - 1 : column_count;
+			if (row_count != UNKNOWN) {
+				features.resize(row_count);
+				for (unsigned short i = 0; i < features.size(); i++) {
+					features[i].resize(feature_columns);
+				}
+				if (data_contains_labels) {
+					labels.resize(row_count);
+				}
+			}
+
+			std::string line_buffer;
+			unsigned row_counter = 0;
+
+			// To avoid unnecessary branching, pick one of static and dynamic reading functions and apply it in a loop
+			if (row_count == UNKNOWN) {
+				while (std::getline(stream, line_buffer)) {
+					std::istringstream line_stream(line_buffer);
+					dynamic_row_append(features, labels, line_stream, delimiter, data_contains_labels);
+					row_counter++;
+				}
+			}
+			else {
+				while (std::getline(stream, line_buffer)) {
+					std::istringstream line_stream(line_buffer);
+					static_row_append(features, labels, line_stream, row_counter, delimiter, data_contains_labels);
+					row_counter++;
+				}
+				// row count might be larger than the size of actual data. To prevent future issues, dataset must be shrinked to actual size
+				features.resize(row_counter);
+				if (data_contains_labels) {
+					labels.resize(row_counter);
+				}
+			}
+			// shrink the vector capacity to its size, to reduce the memory usage.
+			//This is a good way of reducing the memory usage if there will be no more insertions to the dataset
+			features.shrink_to_fit();
+			labels.shrink_to_fit();
+
+			return std::make_pair(features, labels);
+		}
+	
+		unsigned count_lines() {
+			return std::count(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>(), '\n');
+		}
 	};
 }
 

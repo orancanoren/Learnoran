@@ -59,7 +59,7 @@ public:
 		return layers[layers.size() - 1];
 	}
 
-	void learn(const std::vector<std::vector<double>> & features, const std::vector<double> & labels, const double learning_rate, const unsigned epochs) {
+	std::ostream & learn(const std::vector<std::vector<double>> & features, const std::vector<double> & labels, const double learning_rate, const unsigned epochs, std::ostream & os, bool descriptive_output = false) {
 		// Applies batch gradient descent
 		// currently only supports regression problems (i.e. single output neuron)
 		assert(layers[layers.size() - 1].get_shape().rows == 1);
@@ -70,9 +70,31 @@ public:
 			}
 
 			if (epoch % 10 == 0) {
-				std::cout << "Epoch " << epoch << '/' << epochs << " - MSE for first 100 rows: " << compute_average_mse(Matrix<double>(features), labels, 100) << '\n';
+				double average_mse = compute_average_mse(features, labels, 100);
+				if (descriptive_output) {
+					os << "Epoch " << epoch << '/' << epochs << " - MSE for first 100 rows: " << average_mse << '\n';
+				}
+				else {
+					os << epoch << ' ' << average_mse << '\n';
+				}
 			}
 		}
+
+		double final_average_mse = compute_average_mse(features, labels, 100);
+		if (descriptive_output) {
+			os << "Epoch " << epochs << '/' << epochs << " - MSE for first 100 rows: " << final_average_mse << '\n';
+		}
+		else {
+			os << epochs << ' ' << final_average_mse << '\n';
+		}
+
+		return os;
+	}
+
+	double compute_accuracy(const std::vector<std::vector<double>> & features, const std::vector<double> & labels) {
+		assert(features.size() == labels.size());
+		
+		return compute_average_mse(features, labels, features.size());
 	}
 
 private:
@@ -155,9 +177,9 @@ private:
 		return 0.5 * error * error;
 	}
 
-	double compute_average_mse(const Matrix<double> & features, const std::vector<double> & labels, const unsigned num_rows) {
+	double compute_average_mse(const std::vector<std::vector<double>> & features, const std::vector<double> & labels, const unsigned num_rows) {
 		double average_mse = 0.0;
-		unsigned total_rows = std::min(features.get_shape().rows, num_rows);
+		unsigned total_rows = std::min(static_cast<unsigned>(features.size()), num_rows);
 
 		for (unsigned training_row = 0; training_row < total_rows; training_row++) {
 			compute_forward_pass(features[training_row]);

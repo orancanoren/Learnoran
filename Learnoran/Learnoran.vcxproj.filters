@@ -13,37 +13,49 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\crypto">
+      <UniqueIdentifier>{98dc39d1-fcd2-44d4-888b-451fc5dae1c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\exception">
+      <UniqueIdentifier>{88fccb60-6841-4d2c-b8a9-f1dc0c2f755d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ml">
+      <UniqueIdentifier>{d9b31d57-c466-48d6-a704-99ec554ce9ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util">
+      <UniqueIdentifier>{f234f11e-0eaa-4826-b77c-cccf47b43515}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="linear_model.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="polynomial.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dataframe.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="io_helper.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lo_exception.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="predictor.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="seal_parameters.hpp">
+      <Filter>Header Files\crypto</Filter>
     </ClInclude>
     <ClInclude Include="encryption_manager.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\crypto</Filter>
     </ClInclude>
     <ClInclude Include="encrypted_number.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\crypto</Filter>
     </ClInclude>
     <ClInclude Include="decryption_manager.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\crypto</Filter>
     </ClInclude>
-    <ClInclude Include="seal_parameters.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="lo_exception.hpp">
+      <Filter>Header Files\exception</Filter>
+    </ClInclude>
+    <ClInclude Include="predictor.hpp">
+      <Filter>Header Files\ml</Filter>
+    </ClInclude>
+    <ClInclude Include="polynomial.hpp">
+      <Filter>Header Files\ml</Filter>
+    </ClInclude>
+    <ClInclude Include="linear_model.hpp">
+      <Filter>Header Files\ml</Filter>
+    </ClInclude>
+    <ClInclude Include="dataframe.hpp">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="io_helper.hpp">
+      <Filter>Header Files\util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
