@@ -46,10 +46,10 @@ namespace Learnoran {
 			for (unsigned short epoch = 0; epoch < epochs; epoch++) {
 				mse_batch_gd(dataframe, learning_rate);
 				if (epoch % 10 == 0) {
-					std::cout << "loss after epoch " << epoch << ": " << compute_mean_square_error(dataframe) << std::endl;
+					std::cout << "Epoch " << epoch << "/" << epochs << " - MSE for first 100 rows: " << compute_mean_square_error(dataframe, 100) << std::endl;
 				}
 			}
-			std::cout << "final loss: " << compute_mean_square_error(dataframe) << std::endl;
+			std::cout << "Epoch " << epochs << "/" << epochs << " - MSE for first 100 rows: " << compute_mean_square_error(dataframe, 100) << std::endl;
 		}
 
 		void fit(const Dataframe<EncryptedNumber> & dataframe, const unsigned short epochs, const double learning_rate, const DecryptionManager * dec_man = nullptr) override {
@@ -63,15 +63,15 @@ namespace Learnoran {
 
 		// MARK: PREDICTION
 
-		double predict(const std::unordered_map<std::string, double> & features) const /*override*/  {
+		double predict(const std::unordered_map<std::string, double> & features) override {
 			return plaintext_model(features);
 		}
 
-		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features, const DecryptionManager * dec_man = nullptr) const override {
+		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features, const DecryptionManager * dec_man = nullptr) override {
 			return encrypted_model(features, encrypted_zero, dec_man);
 		}
 
-		double predict(const std::initializer_list<std::pair<std::string, double>> features) const    {
+		double predict(const std::initializer_list<std::pair<std::string, double>> features)     {
 			std::unordered_map<std::string, double> feature_map;
 
 			for (const std::pair<std::string, double> & feature : features) {
@@ -83,9 +83,37 @@ namespace Learnoran {
 
 		// MARK: MODEL ACCURACY ASSESSMENT
 
-		double compute_mean_square_error(const Dataframe<double> & dataframe) const;
+		double compute_mean_square_error(const Dataframe<double> & dataframe, const unsigned num_rows) override {
+			DataframeShape shape = dataframe.shape();
+			double loss = 0.0;
 
-		EncryptedNumber compute_mean_square_error(const Dataframe<EncryptedNumber> & dataframe) const;
+			for (unsigned row = 0; row < shape.rows; row++) {
+				const double real_value = dataframe.get_row_label(row);
+				std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
+
+				const double model_error = plaintext_model(row_features) - real_value;
+				loss += model_error * model_error;
+			}
+			loss *= 1.0 / (shape.rows);
+
+			return loss;
+		}
+
+		EncryptedNumber compute_mean_square_error(const Dataframe<EncryptedNumber> & dataframe, const unsigned num_rows) override {
+			DataframeShape shape = dataframe.shape();
+			EncryptedNumber loss = encrypted_zero;
+
+			for (unsigned row = 0; row < shape.rows; row++) {
+				const EncryptedNumber real_value = dataframe.get_row_label(row);
+				std::unordered_map<std::string, EncryptedNumber> row_features = dataframe.get_row_feature(row);
+
+				EncryptedNumber model_error = encrypted_model(row_features, encrypted_zero) - real_value;
+				loss += model_error * model_error;
+			}
+			loss *= 1.0 / (shape.rows);
+
+			return loss;
+		}
 	private:
 		// MARK: LINEAR_MODEL MEMBERS
 		
@@ -250,38 +278,6 @@ namespace Learnoran {
 			}
 		}
 	};
-
-	double LinearModel::compute_mean_square_error(const Dataframe<double> & dataframe) const {
-		DataframeShape shape = dataframe.shape();
-		double loss = 0.0;
-
-		for (unsigned row = 0; row < shape.rows; row++) {
-			const double real_value = dataframe.get_row_label(row);
-			std::unordered_map<std::string, double> row_features = dataframe.get_row_feature(row);
-
-			const double model_error = plaintext_model(row_features) - real_value;
-			loss += model_error * model_error;
-		}
-		loss *= 1.0 / (shape.rows);
-
-		return loss;
-	}
-
-	EncryptedNumber LinearModel::compute_mean_square_error(const Dataframe<EncryptedNumber> & dataframe) const {
-		DataframeShape shape = dataframe.shape();
-		EncryptedNumber loss = encrypted_zero;
-
-		for (unsigned row = 0; row < shape.rows; row++) {
-			const EncryptedNumber real_value = dataframe.get_row_label(row);
-			std::unordered_map<std::string, EncryptedNumber> row_features = dataframe.get_row_feature(row);
-
-			EncryptedNumber model_error = encrypted_model(row_features, encrypted_zero) - real_value;
-			loss += model_error * model_error;
-		}
-		loss *= 1.0 / (shape.rows);
-
-		return loss;
-	}
 }
 
 #endif

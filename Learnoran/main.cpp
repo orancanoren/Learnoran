@@ -23,6 +23,21 @@
 using namespace std;
 using namespace Learnoran;
 
+const double id = 1;
+const double crim = 0.00632;
+const double zn = 18;
+const double indus = 2.31;
+const double chas = 0;
+const double nox = 2.538;
+const double rm = 6.575;
+const double age = 65.2;
+const double dis = 4.09;
+const double rad = 1;
+const double tax = 296;
+const double ptratio = 15.3;
+const double black = 396.9;
+const double lstat = 4.98;
+
 int random_number() {
 	static random_device rd;
 	static mt19937 mt(rd());
@@ -78,7 +93,7 @@ void train_plaintext_model(Predictor & predictor, const Dataframe<double> & df, 
 	cout << "Training done [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
 }
 
-void test_plain_model(const Predictor & predictor, const unordered_map<string, double> & features) {
+void test_plain_model(Predictor & predictor, const unordered_map<string, double> & features) {
 	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
 	const double prediction = predictor.predict(features);
 	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
@@ -86,7 +101,7 @@ void test_plain_model(const Predictor & predictor, const unordered_map<string, d
 	cout << "Model prediction: " << prediction << " [" << chrono::duration_cast<chrono::milliseconds>(end - begin).count() << " ms]" << endl;
 }
 
-void test_encrypted_model(const Predictor & predictor, const unordered_map<string, EncryptedNumber> & features, const DecryptionManager & dec_manager) {
+void test_encrypted_model(Predictor & predictor, const unordered_map<string, EncryptedNumber> & features, const DecryptionManager & dec_manager) {
 	chrono::high_resolution_clock::time_point begin = chrono::high_resolution_clock::now();
 	const EncryptedNumber prediction = predictor.predict(features);
 	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
@@ -133,83 +148,56 @@ Dataframe<double> read_dataset(const std::string & csv_file, unsigned num_rows =
 	return dataframe;
 }
 
+double plain_neural_network_test(const Dataframe<double> & df, const unordered_map<string, double> test_features) {
+	NeuralNetwork nn(std::cout, true);
+
+	nn.add_layer(14, &df.get_feature_headers());
+	nn.add_layer(6);
+	nn.add_layer(1);
+
+	train_plaintext_model(nn, df, 1000, 0.00001);
+
+	double prediction = nn.predict(test_features);
+
+	return prediction;
+}
+
+double plain_linear_regressor_test(const Dataframe<double> & df, const unordered_map<string, double> test_features) {
+	LinearModel regressor;
+
+	regressor.fit(df, 1000, 0.00001);
+
+	double prediction = regressor.predict(test_features);
+
+	return prediction;
+}
+
+Dataframe<double> read_dataset() {
+	unsigned dataset_rows = 0;
+	std::string csv_file;
+	
+	cout << "Enter the directory for the training dataset CSV\n>> ";
+	cin >> csv_file;
+	
+	cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
+	cin >> dataset_rows;
+	
+	return read_dataset(csv_file, dataset_rows);
+}
+
 int main() {
 	try {
-		// 1 - READ DATASET
-		unsigned dataset_rows = 0;
-		std::string csv_file;
-
-		cout << "Enter the directory for the training dataset CSV\n>> ";
-		cin >> csv_file;
-
-		cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
-		cin >> dataset_rows;
-
-		Dataframe<double> df = read_dataset(csv_file, dataset_rows);
-
-		// 2 - DATASET ENCRYPTION
-		shared_ptr<EncryptionManager> encryption_manager = make_shared<EncryptionManager>();
-		DecryptionManager decryption_manager(encryption_manager->get_secret_key());
-
-#ifdef TRAIN_ENCRYPTED
-		Dataframe<EncryptedNumber> * encrypted_df = encrypt_dataframe(df, encryption_manager);
-#endif
-
-		// 3 - MODEL TRAINING
-		LinearModel plaintext_linear_model;
-		NeuralNetwork plaintext_nn(std::cout, true);
-		cout << "\n--- Initiating training benchmarks ---\n" << endl
-			 << "1. Training a plaintext model\n" << endl;
-		train_plaintext_model(plaintext_linear_model, df);
-
-#ifdef TRAIN_ENCRYPTED
-		LinearModel encrypted_linear_model(encryption_manager);
-
-		cout << "\n2. Training an encrypted model\n" << endl;
-		train_encrypted_model(encrypted_linear_model, *encrypted_df, &decryption_manager);
-#endif
-
-		// 4 - MODEL ACCURACY ASSESSMENT
-		cout << "\n--- Initiating model accuracy assessment ---\n" << endl
-			<< "1. Plaintext model predictions" << endl;
-		
-		const double id = 1;
-		const double crim = 0.00632;
-		const double zn = 18;
-		const double indus = 2.31;
-		const double chas = 0;
-		const double nox = 2.538;
-		const double rm = 6.575;
-		const double age = 65.2;
-		const double dis = 4.09;
-		const double rad = 1;
-		const double tax = 296;
-		const double ptratio = 15.3;
-		const double black = 396.9;
-		const double lstat = 4.98;
+		// 1 - IO
+		Dataframe<double> df = read_dataset();
 
 		const unordered_map<string, double> plaintext_features = { { "zn", zn }, { "indus", indus },
-		{"chas", chas}, {"nox", nox}, {"rm", rm}, {"age", age}, {"dis", dis}, {"rad", rad}, {"tax", tax},
-		{"ptratio", ptratio}, {"black", black}, {"lstat", lstat}, {"ID", id}, {"crim", crim} };
-		
-		const unordered_map<string, EncryptedNumber> encrypted_features = { { "zn", encryption_manager->encrypt(zn) }, { "indus", encryption_manager->encrypt(indus) },
-		{"chas", encryption_manager->encrypt(chas)}, {"nox", encryption_manager->encrypt(nox)}, {"rm",encryption_manager->encrypt(rm)},
-		{"age", encryption_manager->encrypt(age)}, {"dis", encryption_manager->encrypt(dis)}, {"rad", encryption_manager->encrypt(rad)}, {"tax", encryption_manager->encrypt(tax)},
-		{"ptratio", encryption_manager->encrypt(ptratio)}, {"black", encryption_manager->encrypt(black)}, {"lstat", encryption_manager->encrypt(lstat)},
-		{"ID", encryption_manager->encrypt(id)}, {"crim", encryption_manager->encrypt(crim)} };
-		
-		cout << "Performing prediction on the plaintext model" << endl;
-		test_plain_model(plaintext_linear_model, plaintext_features);
+			{"chas", chas}, {"nox", nox}, {"rm", rm}, {"age", age}, {"dis", dis}, {"rad", rad}, {"tax", tax},
+			{"ptratio", ptratio}, {"black", black}, {"lstat", lstat}, {"ID", id}, {"crim", crim} };
 
-#ifdef TRAIN_PLAIN_PREDICT_ENCRYPTED
-		linear_model.encrypt_model(encryption_manager);
-		cout << "\nPerforming prediction on the encrypted model [training done on plaintexts]" << endl;
-		test_encrypted_model(linear_model, encrypted_features, decryption_manager);
-#elif defined(TRAIN_ENCRYPTED)
-		cout << "\nPerforming prediction on the encrypted model [training done on ciphertexts]" << endl;
-		test_encrypted_model(encrypted_linear_model, encrypted_features, decryption_manager);
-#endif
-		return 0;
+		// 2 - Model runs
+		cout << "neural network prediction result: " << plain_neural_network_test(df, plaintext_features) << endl;
+
+		cout << "linear regressor prediction result: " << plain_linear_regressor_test(df, plaintext_features) << endl;
 	}
 	catch (const LearnoranException & exc) {
 		cerr << "\nLearnoran exception catched - see the description below:" << endl
@@ -231,3 +219,96 @@ int main() {
 		return 1;
 	}
 }
+
+//int main() {
+//	try {
+//		// 1 - READ DATASET
+//		unsigned dataset_rows = 0;
+//		std::string csv_file;
+//
+//		cout << "Enter the directory for the training dataset CSV\n>> ";
+//		cin >> csv_file;
+//
+//		cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
+//		cin >> dataset_rows;
+//
+//		Dataframe<double> df = read_dataset(csv_file, dataset_rows);
+//
+//		// 2 - DATASET ENCRYPTION
+//		shared_ptr<EncryptionManager> encryption_manager = make_shared<EncryptionManager>();
+//		DecryptionManager decryption_manager(encryption_manager->get_secret_key());
+//
+//		Dataframe<EncryptedNumber> * encrypted_df = encrypt_dataframe(df, encryption_manager);
+//
+//		// 3 - MODEL TRAINING
+//		LinearModel plaintext_linear_model;
+//		NeuralNetwork plaintext_nn(std::cout, true);
+//		cout << "\n--- Initiating training benchmarks ---\n" << endl
+//			 << "1. Training a plaintext linear regressor\n" << endl;
+//		train_plaintext_model(plaintext_linear_model, df);
+//
+//		cout << "2. Training a plaintext neural network regressor [20 epochs]" << endl;
+//		train_plaintext_model(plaintext_nn, df, 20);
+//
+//		cout << "\n3. Training an encrypted model\n" << endl;
+//		LinearModel encrypted_linear_model(encryption_manager);
+//		train_encrypted_model(encrypted_linear_model, *encrypted_df, &decryption_manager);
+//
+//		// 4 - MODEL ACCURACY ASSESSMENT
+//		cout << "\n--- Initiating model accuracy assessment ---\n" << endl
+//			<< "1. Plaintext model predictions" << endl;
+//		
+//		const double id = 1;
+//		const double crim = 0.00632;
+//		const double zn = 18;
+//		const double indus = 2.31;
+//		const double chas = 0;
+//		const double nox = 2.538;
+//		const double rm = 6.575;
+//		const double age = 65.2;
+//		const double dis = 4.09;
+//		const double rad = 1;
+//		const double tax = 296;
+//		const double ptratio = 15.3;
+//		const double black = 396.9;
+//		const double lstat = 4.98;
+//
+//		const unordered_map<string, double> plaintext_features = { { "zn", zn }, { "indus", indus },
+//		{"chas", chas}, {"nox", nox}, {"rm", rm}, {"age", age}, {"dis", dis}, {"rad", rad}, {"tax", tax},
+//		{"ptratio", ptratio}, {"black", black}, {"lstat", lstat}, {"ID", id}, {"crim", crim} };
+//		
+//		const unordered_map<string, EncryptedNumber> encrypted_features = { { "zn", encryption_manager->encrypt(zn) }, { "indus", encryption_manager->encrypt(indus) },
+//		{"chas", encryption_manager->encrypt(chas)}, {"nox", encryption_manager->encrypt(nox)}, {"rm",encryption_manager->encrypt(rm)},
+//		{"age", encryption_manager->encrypt(age)}, {"dis", encryption_manager->encrypt(dis)}, {"rad", encryption_manager->encrypt(rad)}, {"tax", encryption_manager->encrypt(tax)},
+//		{"ptratio", encryption_manager->encrypt(ptratio)}, {"black", encryption_manager->encrypt(black)}, {"lstat", encryption_manager->encrypt(lstat)},
+//		{"ID", encryption_manager->encrypt(id)}, {"crim", encryption_manager->encrypt(crim)} };
+//		
+//		cout << "Performing prediction on the plaintext model" << endl;
+//		test_plain_model(plaintext_linear_model, plaintext_features);
+//
+//
+//		cout << "\nPerforming prediction on the encrypted model [training done on ciphertexts]" << endl;
+//		test_encrypted_model(encrypted_linear_model, encrypted_features, decryption_manager);
+//
+//		return 0;
+//	}
+//	catch (const LearnoranException & exc) {
+//		cerr << "\nLearnoran exception catched - see the description below:" << endl
+//			<< exc.what() << endl;
+//		return 1;
+//	}
+//	catch (const runtime_error & exc) {
+//		cerr << "\nUnknown runtime error catched - see the description below:" << endl
+//			<< exc.what() << endl;
+//		return 1;
+//	}
+//	catch (const exception & exc) {
+//		cerr << "\nException catched - see the description below:" << endl
+//			<< exc.what() << endl;
+//		return 1;
+//	}
+//	catch (...) {
+//		cerr << "\nUnknown exception encountered :(" << endl;
+//		return 1;
+//	}
+//}

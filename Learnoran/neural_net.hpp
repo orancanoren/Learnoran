@@ -19,7 +19,7 @@ namespace Learnoran {
 		NeuralNetwork(std::ostream & info_stream, bool descriptive_info_output = false) 
 			: info_stream(info_stream), descriptive_info_output(descriptive_info_output) { }
 
-		void add_layer(const unsigned neurons, const std::vector<std::string> * feature_symbols = nullptr) {
+		void add_layer(const unsigned neurons, std::vector<std::string> * feature_symbols = nullptr) {
 			// Adds a new layer to the end of the network
 			// Connections to the new layer are initialized with random values
 			// from the standard normal distribution
@@ -36,20 +36,24 @@ namespace Learnoran {
 			}
 			else {
 				assert(feature_symbols->size() == neurons);
-				input_layer_symbols = feature_symbols;
+
+				input_layer_symbols.resize(feature_symbols->size());
+				for (unsigned i = 0; i < feature_symbols->size(); i++) {
+					input_layer_symbols[i] = feature_symbols->at(i);
+				}
 			}
 
 			layers.push_back(Matrix<double>(1, neurons));
 			biases.push_back(snd_random());
 		}
 
-		double predict(const std::unordered_map<std::string, double> inputs) {
+		double predict(const std::unordered_map<std::string, double> & inputs) override {
 			// NOTE: currently the NN interface only supports regression problems; for which the NN architecture has only one output layer neuron
-			const Matrix<double> outputs = forward_pass(inputs);
+			const Matrix<double> outputs = forward_pass(map_to_vector(inputs));
 			return outputs[0][0];
 		}
 
-		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & inputs, const DecryptionManager * dec_man) {
+		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & inputs, const DecryptionManager * dec_man) override  {
 			// TODO
 			return EncryptedNumber();
 		}
@@ -68,12 +72,12 @@ namespace Learnoran {
 				}
 
 				if (epoch % 10 == 0) {
-					double average_mse = compute_mean_square_error(Dataframe<double>(features, labels, *input_layer_symbols), 100);
+					double average_mse = compute_mean_square_error(Dataframe<double>(features, labels, input_layer_symbols), 100);
 					output_error(epoch, epochs, average_mse);
 				}
 			}
 
-			double final_average_mse = compute_mean_square_error(Dataframe<double>(features, labels, *input_layer_symbols), 100);
+			double final_average_mse = compute_mean_square_error(Dataframe<double>(features, labels, input_layer_symbols), 100);
 			output_error(epochs, epochs, final_average_mse);
 		}
 
@@ -103,7 +107,7 @@ namespace Learnoran {
 			return EncryptedNumber();
 		}
 	private:
-		Matrix<double> forward_pass(const std::unordered_map<std::string, double> & inputs) {
+		Matrix<double> forward_pass(const std::vector<double> & inputs) {
 			compute_forward_pass(inputs);
 			return layers[layers.size() - 1];
 		}
@@ -151,11 +155,31 @@ namespace Learnoran {
 			layers.at(num_layers - 1) = layers.at(num_layers - 2).dot(connections.at(num_layers - 2)).map(&apply_bias, biases.at(num_layers - 2));
 		}
 
+		std::vector<double> map_to_vector(const std::unordered_map<std::string, double> & map) const {
+			assert(input_layer_symbols.size() > 0);
+
+			std::vector<double> vec(map.size());
+
+			for (const std::pair<std::string, double> & variable : map) {
+				const std::string & variable_symbol = variable.first;
+				const double variable_value = variable.second;
+
+				std::vector<std::string>::const_iterator find_result = std::find(input_layer_symbols.begin(), input_layer_symbols.end(), variable_symbol);
+
+				assert(find_result != input_layer_symbols.end());
+
+				unsigned variable_index = std::distance(input_layer_symbols.cbegin(), find_result);
+				vec[variable_index] = variable_value;
+			}
+
+			return vec;
+		}
+
 		void fill_input_layer(const std::unordered_map<std::string, double> & inputs) {
 			assert(inputs.size() == layers[0].get_shape().cols);
 
-			for (unsigned i = 0; i < input_layer_symbols->size(); i++) {
-				const std::string & variable_symbol = input_layer_symbols->at(i);
+			for (unsigned i = 0; i < input_layer_symbols.size(); i++) {
+				const std::string & variable_symbol = input_layer_symbols.at(i);
 				const double variable_value = inputs.find(variable_symbol)->second; // TODO: this find could fail in case of supplement of wrong inputs arg - fix later
 				layers[0][0][i] = variable_value;
 			}
@@ -231,7 +255,7 @@ namespace Learnoran {
 		std::vector<Matrix<double>> layers;
 		std::vector<Matrix<double>> gradients;
 		std::vector<Matrix<double>> connections;
-		const std::vector<std::string> * input_layer_symbols;
+		std::vector<std::string> input_layer_symbols;
 
 		std::ostream & info_stream;
 		const bool descriptive_info_output;

@@ -27,7 +27,7 @@ namespace Learnoran {
 	}
 
 	double sigmoid_prime(double x) {
-		return exp(-x) / (pow(1 + exp(-x), 2));
+		return exp(-x) / (std::pow(1 + exp(-x), 2));
 	}
 }
 
