@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="math_util.hpp" />
+    <ClInclude Include="matrix.hpp" />
+    <ClInclude Include="neural_net.hpp" />
     <ClInclude Include="seal_parameters.hpp" />
     <ClInclude Include="dataframe.hpp" />
     <ClInclude Include="decryption_manager.hpp" />

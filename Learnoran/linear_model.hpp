@@ -67,7 +67,7 @@ namespace Learnoran {
 			return plaintext_model(features);
 		}
 
-		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features, DecryptionManager * dec_man = nullptr) const override {
+		EncryptedNumber predict(const std::unordered_map<std::string, EncryptedNumber> & features, const DecryptionManager * dec_man = nullptr) const override {
 			return encrypted_model(features, encrypted_zero, dec_man);
 		}
 

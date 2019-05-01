@@ -27,6 +27,17 @@ namespace Learnoran {
 		Dataframe(std::vector<std::vector<T>> features, std::vector<T> labels, std::vector<std::string> csv_header)
 			: features(features), labels(labels), columns(csv_header) { }
 
+		Dataframe(const Dataframe<T> & rhs) {
+			features = rhs.features;
+			labels = rhs.labels;
+			columns = rhs.columns;
+		}
+
+		Dataframe(const Dataframe<T> && rhs) {
+			features = rhs.features;
+			labels = rhs.labels;
+			columns = rhs.columns;
+		}
 		// Accessors
 		DataframeShape shape() const {
 			// Returns:

@@ -57,6 +57,15 @@
     <ClInclude Include="io_helper.hpp">
       <Filter>Header Files\util</Filter>
     </ClInclude>
+    <ClInclude Include="math_util.hpp">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="matrix.hpp">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="neural_net.hpp">
+      <Filter>Header Files\ml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

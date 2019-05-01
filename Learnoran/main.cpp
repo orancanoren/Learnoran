@@ -11,9 +11,11 @@
 #include "polynomial.hpp"
 #include "io_helper.hpp"
 #include "dataframe.hpp"
-#include "linear_model.hpp"
 #include "encryption_manager.hpp"
 #include "decryption_manager.hpp"
+
+#include "linear_model.hpp"
+#include "neural_net.hpp"
 
 #define TRAIN_ENCRYPTED
 //#define TRAIN_PLAIN_PREDICT_ENCRYPTED
@@ -155,7 +157,7 @@ int main() {
 
 		// 3 - MODEL TRAINING
 		LinearModel plaintext_linear_model;
-
+		NeuralNetwork plaintext_nn(std::cout, true);
 		cout << "\n--- Initiating training benchmarks ---\n" << endl
 			 << "1. Training a plaintext model\n" << endl;
 		train_plaintext_model(plaintext_linear_model, df);
