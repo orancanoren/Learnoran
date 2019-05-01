@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "CppUnitTest.h"
-#include "../NeuralNetwork/matrix.hpp"
+#include "../Learnoran/matrix.hpp"
 
 #include <vector>
 
