@@ -125,7 +125,7 @@ namespace Learnoran {
 					mid_noise_budget = dec_man->get_noise_budget_bits(power);
 					mid_noise_budget = dec_man->get_noise_budget_bits(term->second.coefficient);
 				}
-				result += term->second.coefficient * power; //pow(variable_value, term->second.exponent);
+				result += term->second.coefficient * power;
 				
 				if (dec_man != nullptr) {
 					noise_budget = dec_man->get_noise_budget_bits(result);

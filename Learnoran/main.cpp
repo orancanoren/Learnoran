@@ -148,6 +148,18 @@ Dataframe<double> read_dataset(const std::string & csv_file, unsigned num_rows =
 	return dataframe;
 }
 
+Dataframe<EncryptedNumber> * read_enc_dataset(const std::string & csv_file, shared_ptr<EncryptionManager> enc_manager, unsigned num_rows = 0) {
+	std::pair < std::vector< std::vector<double>>, std::vector<double>> dataset;
+	IOhelper reader;
+	reader.open_file(csv_file.c_str());
+
+	dataset = reader.read_csv(num_rows);
+
+	Dataframe<double> dataframe(dataset, reader.get_csv_header());
+	Dataframe<EncryptedNumber> * enc_df = encrypt_dataframe(dataframe, enc_manager);
+	return enc_df;
+}
+
 double plain_neural_network_test(const Dataframe<double> & df, const unordered_map<string, double> test_features) {
 	NeuralNetwork nn(std::cout, true);
 
@@ -172,17 +184,51 @@ double plain_linear_regressor_test(const Dataframe<double> & df, const unordered
 	return prediction;
 }
 
+EncryptedNumber encrypted_linear_regressor_test(const Dataframe<EncryptedNumber> & df, const unordered_map<string, EncryptedNumber> test_features, shared_ptr<EncryptionManager> enc_manager, const DecryptionManager * dec_manager) {
+	LinearModel regressor(enc_manager);
+
+	regressor.fit(df, 3, 0.00001, dec_manager);
+
+	EncryptedNumber prediction = regressor.predict(test_features, dec_manager);
+
+	return prediction;
+}
+
+EncryptedNumber encrypted_linear_regressor_pred_test(const Dataframe<double> & df, const unordered_map<string, EncryptedNumber> test_features, shared_ptr<EncryptionManager> enc_manager, const DecryptionManager * dec_manager) {
+	LinearModel regressor;
+
+	regressor.fit(df, 1000, 0.00001);
+	regressor.encrypt_model(enc_manager);
+
+	EncryptedNumber prediction = regressor.predict(test_features, dec_manager);
+
+	return prediction;
+}
+
 Dataframe<double> read_dataset() {
 	unsigned dataset_rows = 0;
 	std::string csv_file;
 	
-	cout << "Enter the directory for the training dataset CSV\n>> ";
+	cout << "Enter the directory for the training dataset CSV [for plaintext processing]\n>> ";
 	cin >> csv_file;
 	
 	cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
 	cin >> dataset_rows;
 	
 	return read_dataset(csv_file, dataset_rows);
+}
+
+Dataframe<EncryptedNumber> * read_enc_dataset(shared_ptr<EncryptionManager> enc_manager) {
+	unsigned dataset_rows = 0;
+	std::string csv_file;
+
+	cout << "Enter the directory for the training dataset CSV [for homomorphic processing]\n>> ";
+	cin >> csv_file;
+
+	cout << "Enter the number of rows in the training dataset (enter 0 if unknown)\n>> ";
+	cin >> dataset_rows;
+
+	return read_enc_dataset(csv_file, enc_manager, dataset_rows);
 }
 
 int main() {
@@ -194,10 +240,31 @@ int main() {
 			{"chas", chas}, {"nox", nox}, {"rm", rm}, {"age", age}, {"dis", dis}, {"rad", rad}, {"tax", tax},
 			{"ptratio", ptratio}, {"black", black}, {"lstat", lstat}, {"ID", id}, {"crim", crim} };
 
+		shared_ptr<EncryptionManager> enc_manager = make_shared<EncryptionManager>();
+		DecryptionManager dec_manager(enc_manager->get_secret_key());
+
+		Dataframe<EncryptedNumber> * enc_df = read_enc_dataset(enc_manager);
+		const unordered_map<string, EncryptedNumber> encrypted_features = { { "zn", enc_manager->encrypt(zn) }, { "indus", enc_manager->encrypt(indus) },
+			{"chas", enc_manager->encrypt(chas) }, {"nox", enc_manager->encrypt(nox) }, {"rm", enc_manager->encrypt(rm) }, {"age", enc_manager->encrypt(age) }, 
+			{"dis", enc_manager->encrypt(dis) }, {"rad", enc_manager->encrypt(rad) }, {"tax", enc_manager->encrypt(tax) },
+			{"ptratio", enc_manager->encrypt(ptratio) }, {"black", enc_manager->encrypt(black) }, {"lstat", enc_manager->encrypt(lstat) },
+			{"ID", enc_manager->encrypt(id) }, {"crim", enc_manager->encrypt(crim) }
+		};
+
 		// 2 - Model runs
 		cout << "neural network prediction result: " << plain_neural_network_test(df, plaintext_features) << endl;
 
 		cout << "linear regressor prediction result: " << plain_linear_regressor_test(df, plaintext_features) << endl;
+
+		cout << "Training a linear model with encrypted features..." << endl;
+		EncryptedNumber linear_reg_enc_pred = encrypted_linear_regressor_test(*enc_df, encrypted_features, enc_manager, &dec_manager);
+		double decrypted_pred = dec_manager.decrypt(linear_reg_enc_pred);
+		cout << "encrypted linear regressor prediction result: " << decrypted_pred << endl;
+
+		cout << "Training a linear model on plaintext and obtaining ciphertext predictions..." << endl;
+		linear_reg_enc_pred = encrypted_linear_regressor_pred_test(df, encrypted_features, enc_manager, &dec_manager);
+		decrypted_pred = dec_manager.decrypt(linear_reg_enc_pred);
+		cout << "encrypted linear regressor [training on plaintext] result: " << decrypted_pred << endl;
 	}
 	catch (const LearnoranException & exc) {
 		cerr << "\nLearnoran exception catched - see the description below:" << endl
