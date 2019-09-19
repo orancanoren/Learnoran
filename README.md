@@ -1,14 +1,9 @@
 # Learnoran
-CPU &amp; GPU Parallelized Homomorphic Machine Learning API for C++
+CPU Parallel Homomorphic Machine Learning Framework for C++
 
-__Current Status:__ Microsoft SEAL integration almost done - however the framework is consuming non-practical resources.
+## What is Learnoran?
 
-## Project Roadmap
-
-- [x] Build a proper machine library framework supporting linear regression
-- [ ] __Integrete Microsoft SEAL into the library so that ML methods are capable of homomorphic processing__
-- [ ] Expand the ML library to support ANN models
-- [ ] Integrate homomorphic capabilities into the ANN models and parallelize training on CPUs
-- [ ] Parallelize the library on GPUs
-- [ ] Add multi-GPU support
-- [ ] [*optional*] Extend the framework to Kubernetes environments
+Learnoran is a Machine Learning platform capable of working with homomorphically encrypted data. The framework currently enables the user to perform training, and prediction on the linear regression model (which will be expanded to polynomial regressors soon). The ultimate aim is to have neural networks to operate on ciphertexts as well. Learnoran currently implements fully connected neural networks with sigmoidal transfer functions; however homomorphic capabilities haven't been implemented for ANNs yet.
+<br/>
+<br/>
+Learnoran uses Microsoft SEAL v3 under the hood.
