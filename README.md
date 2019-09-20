@@ -14,6 +14,8 @@ Examples are provided below.
 
 ### Homomorphic linear regression training & predicting
 ```cpp
+#include <iostream>
+
 #include "encryption_manager.hpp"
 #include "decryption_manager.hpp"
 #include "linear_model.hpp"
