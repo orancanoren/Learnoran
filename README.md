@@ -20,6 +20,7 @@ Examples are provided below.
 #include "dataframe.hpp"
 
 using namespace Learnoran;
+using namespace std;
 
 EncryptedNumber encrypted_linear_regression(const Dataframe<EncryptedNumber> & df, 
   const unordered_map<string, EncryptedNumber> test_features, 
