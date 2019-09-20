@@ -7,3 +7,41 @@ Learnoran is a Machine Learning platform capable of working with homomorphically
 <br/>
 <br/>
 Learnoran uses Microsoft SEAL v3 under the hood.
+
+## Usage
+
+Examples are provided below.
+
+### Homomorphic linear regression training & predicting
+```cpp
+#include "encryption_manager.hpp"
+#include "decryption_manager.hpp"
+#include "linear_model.hpp"
+#include "dataframe.hpp"
+
+EncryptedNumber encrypted_linear_regression(const Dataframe<EncryptedNumber> & df, 
+  const unordered_map<string, EncryptedNumber> test_features, 
+  shared_ptr<EncryptionManager> enc_manager) {
+	LinearModel regressor(enc_manager);
+
+	regressor.fit(df, 3, 0.00001);
+
+	EncryptedNumber prediction = regressor.predict(test_features);
+
+	return prediction;
+}
+
+int main() {
+  // ...
+  // read a dataset as std::pair<std::vector<std::vector<double>>, std::vector<double>>
+  // (training data, training labels), and construct a Learnoran::Dataframe object,
+  // Initialize EncryptionManager and DecryptionManager objects
+  
+  Dataframe<EncryptedNumber> * encrypted_dataframe = new Dataframe<EncryptedNumber>(encryption_manager->encrypt_dataframe(df));
+  
+  EncryptedNumber linear_reg_enc_pred = encrypted_linear_regressor_test(*enc_df, encrypted_features, enc_manager);
+  cout << "encrypted linear regressor prediction result: " << dec_manager.decrypt(linear_reg_enc_pred) << endl;
+
+  return 0;
+}
+```
