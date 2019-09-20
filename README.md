@@ -19,6 +19,8 @@ Examples are provided below.
 #include "linear_model.hpp"
 #include "dataframe.hpp"
 
+using namespace Learnoran;
+
 EncryptedNumber encrypted_linear_regression(const Dataframe<EncryptedNumber> & df, 
   const unordered_map<string, EncryptedNumber> test_features, 
   shared_ptr<EncryptionManager> enc_manager) {
