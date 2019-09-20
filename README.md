@@ -27,13 +27,11 @@ using namespace std;
 EncryptedNumber encrypted_linear_regression(const Dataframe<EncryptedNumber> & df, 
   const unordered_map<string, EncryptedNumber> test_features, 
   shared_ptr<EncryptionManager> enc_manager) {
+	
 	LinearModel regressor(enc_manager);
 
 	regressor.fit(df, 3, 0.00001);
-
-	EncryptedNumber prediction = regressor.predict(test_features);
-
-	return prediction;
+	return regressor.predict(test_features);
 }
 
 int main() {
