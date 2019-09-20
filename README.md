@@ -40,9 +40,9 @@ int main() {
   // (training data, training labels), and construct a Learnoran::Dataframe object,
   // Initialize EncryptionManager and DecryptionManager objects
   
-  Dataframe<EncryptedNumber> * encrypted_dataframe = new Dataframe<EncryptedNumber>(encryption_manager->encrypt_dataframe(df));
+  Dataframe<EncryptedNumber> encrypted_dataframe = new Dataframe<EncryptedNumber>(encryption_manager->encrypt_dataframe(df));
   
-  EncryptedNumber linear_reg_enc_pred = encrypted_linear_regressor_test(*enc_df, encrypted_features, enc_manager);
+  EncryptedNumber linear_reg_enc_pred = encrypted_linear_regressor_test(encrypted_dataframe, encrypted_features, enc_manager);
   cout << "encrypted linear regressor prediction result: " << dec_manager.decrypt(linear_reg_enc_pred) << endl;
 
   return 0;
